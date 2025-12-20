@@ -6,11 +6,17 @@ import {
   AlertTriangle, 
   Moon, 
   Map,
-  Activity
+  Activity,
+  Layers,
+  TrendingUp,
+  Building2
 } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/services', icon: Layers, label: 'Our Services' },
+  { path: '/forecasts', icon: TrendingUp, label: 'Forecasts' },
+  { path: '/major-cities', icon: Building2, label: 'Major Cities' },
   { path: '/uv-index', icon: Sun, label: 'UV Index' },
   { path: '/hourly', icon: Clock, label: 'Hourly Forecast' },
   { path: '/alerts', icon: AlertTriangle, label: 'Weather Alerts' },

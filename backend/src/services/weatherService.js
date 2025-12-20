@@ -113,14 +113,14 @@ async function searchCities(query) {
       key: city.city.toLowerCase()
     }));
   
-  // If API key is available, also search via API
+  // If API key is available, also search via API for global results
   const apiKey = getApiKey();
   if (apiKey && apiKey !== 'your_api_key_here') {
     try {
       const geoResponse = await axios.get(`${GEO_URL}/direct`, {
         params: {
           q: query,
-          limit: 5,
+          limit: 10, // Increased limit for more results
           appid: apiKey,
         }
       });
@@ -129,6 +129,7 @@ async function searchCities(query) {
         const apiResults = geoResponse.data.map(city => ({
           city: city.name,
           country: city.country,
+          state: city.state || null,
           key: city.name.toLowerCase(),
           lat: city.lat,
           lon: city.lon,
@@ -137,8 +138,15 @@ async function searchCities(query) {
         // Merge results, removing duplicates
         const merged = [...localResults];
         apiResults.forEach(apiCity => {
-          if (!merged.find(c => c.city.toLowerCase() === apiCity.city.toLowerCase())) {
+          const existingIndex = merged.findIndex(c => 
+            c.city.toLowerCase() === apiCity.city.toLowerCase() && 
+            c.country === apiCity.country
+          );
+          if (existingIndex === -1) {
             merged.push(apiCity);
+          } else {
+            // Update existing with lat/lon if missing
+            merged[existingIndex] = { ...merged[existingIndex], ...apiCity };
           }
         });
         return merged;
@@ -151,13 +159,141 @@ async function searchCities(query) {
   return localResults;
 }
 
-function calculateAQI(pm25) {
-  if (pm25 <= 12) return { value: Math.round(pm25 * 4.17), level: "Good", color: "#22c55e" };
-  if (pm25 <= 35.4) return { value: Math.round(50 + (pm25 - 12) * 2.1), level: "Moderate", color: "#eab308" };
-  if (pm25 <= 55.4) return { value: Math.round(100 + (pm25 - 35.4) * 2.5), level: "Unhealthy for Sensitive", color: "#f97316" };
-  if (pm25 <= 150.4) return { value: Math.round(150 + (pm25 - 55.4) * 0.53), level: "Unhealthy", color: "#ef4444" };
-  if (pm25 <= 250.4) return { value: Math.round(200 + (pm25 - 150.4) * 0.5), level: "Very Unhealthy", color: "#7c3aed" };
-  return { value: Math.round(300 + (pm25 - 250.4) * 0.5), level: "Hazardous", color: "#991b1b" };
+// Calculate AQI for individual pollutants using US EPA standards
+function calculatePM25AQI(pm25) {
+  const breakpoints = [
+    { low: 0, high: 12, aqiLow: 0, aqiHigh: 50 },
+    { low: 12.1, high: 35.4, aqiLow: 51, aqiHigh: 100 },
+    { low: 35.5, high: 55.4, aqiLow: 101, aqiHigh: 150 },
+    { low: 55.5, high: 150.4, aqiLow: 151, aqiHigh: 200 },
+    { low: 150.5, high: 250.4, aqiLow: 201, aqiHigh: 300 },
+    { low: 250.5, high: 500.4, aqiLow: 301, aqiHigh: 500 },
+  ];
+  return interpolateAQI(pm25, breakpoints);
+}
+
+function calculatePM10AQI(pm10) {
+  const breakpoints = [
+    { low: 0, high: 54, aqiLow: 0, aqiHigh: 50 },
+    { low: 55, high: 154, aqiLow: 51, aqiHigh: 100 },
+    { low: 155, high: 254, aqiLow: 101, aqiHigh: 150 },
+    { low: 255, high: 354, aqiLow: 151, aqiHigh: 200 },
+    { low: 355, high: 424, aqiLow: 201, aqiHigh: 300 },
+    { low: 425, high: 604, aqiLow: 301, aqiHigh: 500 },
+  ];
+  return interpolateAQI(pm10, breakpoints);
+}
+
+function calculateO3AQI(o3) {
+  // O3 in µg/m³, convert to ppb (approximate: 1 ppb ≈ 2 µg/m³)
+  const o3ppb = o3 / 2;
+  const breakpoints = [
+    { low: 0, high: 54, aqiLow: 0, aqiHigh: 50 },
+    { low: 55, high: 70, aqiLow: 51, aqiHigh: 100 },
+    { low: 71, high: 85, aqiLow: 101, aqiHigh: 150 },
+    { low: 86, high: 105, aqiLow: 151, aqiHigh: 200 },
+    { low: 106, high: 200, aqiLow: 201, aqiHigh: 300 },
+  ];
+  return interpolateAQI(o3ppb, breakpoints);
+}
+
+function calculateNO2AQI(no2) {
+  // NO2 in µg/m³, convert to ppb (approximate: 1 ppb ≈ 1.88 µg/m³)
+  const no2ppb = no2 / 1.88;
+  const breakpoints = [
+    { low: 0, high: 53, aqiLow: 0, aqiHigh: 50 },
+    { low: 54, high: 100, aqiLow: 51, aqiHigh: 100 },
+    { low: 101, high: 360, aqiLow: 101, aqiHigh: 150 },
+    { low: 361, high: 649, aqiLow: 151, aqiHigh: 200 },
+    { low: 650, high: 1249, aqiLow: 201, aqiHigh: 300 },
+    { low: 1250, high: 2049, aqiLow: 301, aqiHigh: 500 },
+  ];
+  return interpolateAQI(no2ppb, breakpoints);
+}
+
+function calculateSO2AQI(so2) {
+  // SO2 in µg/m³, convert to ppb (approximate: 1 ppb ≈ 2.62 µg/m³)
+  const so2ppb = so2 / 2.62;
+  const breakpoints = [
+    { low: 0, high: 35, aqiLow: 0, aqiHigh: 50 },
+    { low: 36, high: 75, aqiLow: 51, aqiHigh: 100 },
+    { low: 76, high: 185, aqiLow: 101, aqiHigh: 150 },
+    { low: 186, high: 304, aqiLow: 151, aqiHigh: 200 },
+    { low: 305, high: 604, aqiLow: 201, aqiHigh: 300 },
+    { low: 605, high: 1004, aqiLow: 301, aqiHigh: 500 },
+  ];
+  return interpolateAQI(so2ppb, breakpoints);
+}
+
+function calculateCOAQI(co) {
+  // CO in µg/m³, convert to ppm
+  const coppm = co / 1145;
+  const breakpoints = [
+    { low: 0, high: 4.4, aqiLow: 0, aqiHigh: 50 },
+    { low: 4.5, high: 9.4, aqiLow: 51, aqiHigh: 100 },
+    { low: 9.5, high: 12.4, aqiLow: 101, aqiHigh: 150 },
+    { low: 12.5, high: 15.4, aqiLow: 151, aqiHigh: 200 },
+    { low: 15.5, high: 30.4, aqiLow: 201, aqiHigh: 300 },
+    { low: 30.5, high: 50.4, aqiLow: 301, aqiHigh: 500 },
+  ];
+  return interpolateAQI(coppm, breakpoints);
+}
+
+function interpolateAQI(concentration, breakpoints) {
+  for (const bp of breakpoints) {
+    if (concentration <= bp.high) {
+      return Math.round(
+        ((bp.aqiHigh - bp.aqiLow) / (bp.high - bp.low)) * (concentration - bp.low) + bp.aqiLow
+      );
+    }
+  }
+  return 500; // Max AQI
+}
+
+// Calculate overall AQI (highest of all pollutants - US EPA standard)
+function calculateAQI(components) {
+  const pm25 = components.pm2_5 || 0;
+  const pm10 = components.pm10 || 0;
+  const o3 = components.o3 || 0;
+  const no2 = components.no2 || 0;
+  const so2 = components.so2 || 0;
+  const co = components.co || 0;
+
+  const subIndices = {
+    pm25: calculatePM25AQI(pm25),
+    pm10: calculatePM10AQI(pm10),
+    o3: calculateO3AQI(o3),
+    no2: calculateNO2AQI(no2),
+    so2: calculateSO2AQI(so2),
+    co: calculateCOAQI(co),
+  };
+
+  // Find the dominant pollutant (highest AQI)
+  let maxAQI = 0;
+  let dominantPollutant = 'pm25';
+  for (const [pollutant, aqi] of Object.entries(subIndices)) {
+    if (aqi > maxAQI) {
+      maxAQI = aqi;
+      dominantPollutant = pollutant;
+    }
+  }
+
+  // Determine level and color based on AQI value
+  let level, color;
+  if (maxAQI <= 50) { level = "Good"; color = "#22c55e"; }
+  else if (maxAQI <= 100) { level = "Moderate"; color = "#eab308"; }
+  else if (maxAQI <= 150) { level = "Unhealthy for Sensitive Groups"; color = "#f97316"; }
+  else if (maxAQI <= 200) { level = "Unhealthy"; color = "#ef4444"; }
+  else if (maxAQI <= 300) { level = "Very Unhealthy"; color = "#7c3aed"; }
+  else { level = "Hazardous"; color = "#991b1b"; }
+
+  return { 
+    value: maxAQI, 
+    level, 
+    color, 
+    dominantPollutant: dominantPollutant.toUpperCase().replace('25', '2.5').replace('10', '10'),
+    subIndices 
+  };
 }
 
 function getWindDirection(degrees) {
@@ -212,10 +348,9 @@ async function fetchWeatherData() {
     const aqi = aqiResponse.data;
     const forecastData = forecastResponse.data;
 
-    // Process AQI data
+    // Process AQI data - pass all components for accurate calculation
     const aqiComponents = aqi.list[0].components;
-    const pm25 = aqiComponents.pm2_5 || 0;
-    const calculatedAqi = calculateAQI(pm25);
+    const calculatedAqi = calculateAQI(aqiComponents);
 
     // Process 5-day forecast (take one reading per day)
     const dailyForecast = [];
@@ -304,8 +439,16 @@ function generateSimulatedData() {
     dayProgress = 100;
   }
 
-  const pm25 = 35 + (Math.random() - 0.5) * 20;
-  const calculatedAqi = calculateAQI(pm25);
+  // Generate mock pollutant values
+  const mockComponents = {
+    pm2_5: 35 + (Math.random() - 0.5) * 20,
+    pm10: 55 + (Math.random() - 0.5) * 20,
+    o3: 45 + (Math.random() - 0.5) * 15,
+    no2: 25 + (Math.random() - 0.5) * 10,
+    so2: 8 + (Math.random() - 0.5) * 5,
+    co: 500 + (Math.random() - 0.5) * 300,
+  };
+  const calculatedAqi = calculateAQI(mockComponents);
 
   return {
     location: currentLocation,
@@ -326,12 +469,12 @@ function generateSimulatedData() {
     },
     aqi: {
       ...calculatedAqi,
-      pm25: Math.round(pm25 * 10) / 10,
-      pm10: Math.round((55 + (Math.random() - 0.5) * 20) * 10) / 10,
-      o3: Math.round((45 + (Math.random() - 0.5) * 15) * 10) / 10,
-      no2: Math.round((25 + (Math.random() - 0.5) * 10) * 10) / 10,
-      so2: Math.round((8 + (Math.random() - 0.5) * 5) * 10) / 10,
-      co: Math.round((0.5 + (Math.random() - 0.5) * 0.3) * 100) / 100,
+      pm25: Math.round(mockComponents.pm2_5 * 10) / 10,
+      pm10: Math.round(mockComponents.pm10 * 10) / 10,
+      o3: Math.round(mockComponents.o3 * 10) / 10,
+      no2: Math.round(mockComponents.no2 * 10) / 10,
+      so2: Math.round(mockComponents.so2 * 10) / 10,
+      co: Math.round((mockComponents.co / 1000) * 100) / 100,
     },
     sun: {
       sunrise: sunrise.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
@@ -455,10 +598,9 @@ async function getWeatherByCoords(lat, lon) {
       ? { city: geoData[0].name, country: geoData[0].country, lat, lon }
       : { city: `${lat.toFixed(2)}, ${lon.toFixed(2)}`, country: '', lat, lon };
 
-    // Process AQI data
+    // Process AQI data - pass all components for accurate calculation
     const aqiComponents = aqi.list[0].components;
-    const pm25 = aqiComponents.pm2_5 || 0;
-    const calculatedAqi = calculateAQI(pm25);
+    const calculatedAqi = calculateAQI(aqiComponents);
 
     // Process 5-day forecast
     const dailyForecast = [];

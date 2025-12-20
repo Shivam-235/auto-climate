@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Search, ChevronDown, X, Globe } from 'lucide-react';
+import { MapPin, Search, ChevronDown, X, Globe, Loader } from 'lucide-react';
 
 export default function LocationSearch({ socket, currentLocation, onLocationChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [cities, setCities] = useState([]);
-  const [filteredCities, setFilteredCities] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   // Fetch all available cities when component mounts
   useEffect(() => {
@@ -17,12 +19,12 @@ export default function LocationSearch({ socket, currentLocation, onLocationChan
       
       socket.on('availableCities', (data) => {
         setCities(data);
-        setFilteredCities(data);
+        setSearchResults(data);
       });
 
       socket.on('citySearchResults', (results) => {
-        setFilteredCities(results);
-        setIsLoading(false);
+        setSearchResults(results);
+        setIsSearching(false);
       });
 
       socket.on('locationChanged', (result) => {
@@ -63,30 +65,50 @@ export default function LocationSearch({ socket, currentLocation, onLocationChan
     }
   }, [isOpen]);
 
-  // Filter cities based on search query
+  // Search cities globally with debounce
   useEffect(() => {
-    if (searchQuery.trim()) {
-      const filtered = cities.filter(city => 
-        city.city.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredCities(filtered);
-    } else {
-      setFilteredCities(cities);
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  }, [searchQuery, cities]);
 
-  const handleCitySelect = (cityKey) => {
+    if (searchQuery.trim().length >= 2) {
+      setIsSearching(true);
+      // Debounce the search request
+      searchTimeoutRef.current = setTimeout(() => {
+        socket.emit('searchCities', searchQuery);
+      }, 300);
+    } else if (searchQuery.trim() === '') {
+      // Show default cities when search is empty
+      setSearchResults(cities);
+      setIsSearching(false);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, socket, cities]);
+
+  const handleCitySelect = (city) => {
     setIsLoading(true);
-    socket.emit('changeLocation', cityKey);
+    // If city has lat/lon from API search, use coordinates
+    if (city.lat && city.lon) {
+      socket.emit('changeLocation', city.city);
+    } else {
+      socket.emit('changeLocation', city.key);
+    }
   };
 
   const getCountryFlag = (countryCode) => {
-    const flags = {
-      'IN': '🇮🇳', 'US': '🇺🇸', 'GB': '🇬🇧', 'FR': '🇫🇷', 'JP': '🇯🇵',
-      'AU': '🇦🇺', 'AE': '🇦🇪', 'SG': '🇸🇬', 'HK': '🇭🇰', 'DE': '🇩🇪',
-      'RU': '🇷🇺', 'EG': '🇪🇬', 'CA': '🇨🇦', 'TH': '🇹🇭'
-    };
-    return flags[countryCode] || '🌍';
+    // Convert country code to flag emoji
+    if (!countryCode || countryCode.length !== 2) return '🌍';
+    const codePoints = countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
   };
 
   return (
@@ -109,12 +131,15 @@ export default function LocationSearch({ socket, currentLocation, onLocationChan
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search cities..."
+              placeholder="Search any city worldwide..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="location-search-input"
             />
-            {searchQuery && (
+            {isSearching && (
+              <Loader className="location-search-spinner" />
+            )}
+            {searchQuery && !isSearching && (
               <button 
                 className="location-clear-btn"
                 onClick={() => setSearchQuery('')}
@@ -124,25 +149,41 @@ export default function LocationSearch({ socket, currentLocation, onLocationChan
             )}
           </div>
 
+          {searchQuery.length === 1 && (
+            <div className="location-hint">
+              <span>Type at least 2 characters to search globally</span>
+            </div>
+          )}
+
           <div className="location-list">
-            {filteredCities.length === 0 ? (
+            {searchResults.length === 0 ? (
               <div className="location-no-results">
                 <Globe />
                 <span>No cities found</span>
+                <span className="location-hint-text">Try searching for another city</span>
               </div>
             ) : (
-              filteredCities.map((city) => (
-                <button
-                  key={city.key}
-                  className={`location-item ${currentLocation?.city === city.city ? 'active' : ''}`}
-                  onClick={() => handleCitySelect(city.key)}
-                  disabled={isLoading}
-                >
-                  <span className="location-item-flag">{getCountryFlag(city.country)}</span>
-                  <span className="location-item-city">{city.city}</span>
-                  <span className="location-item-country">{city.country}</span>
-                </button>
-              ))
+              <>
+                {searchQuery.length >= 2 && (
+                  <div className="location-results-header">
+                    <Globe size={14} />
+                    <span>Global search results</span>
+                  </div>
+                )}
+                {searchResults.map((city, index) => (
+                  <button
+                    key={`${city.city}-${city.country}-${index}`}
+                    className={`location-item ${currentLocation?.city === city.city ? 'active' : ''}`}
+                    onClick={() => handleCitySelect(city)}
+                    disabled={isLoading}
+                  >
+                    <span className="location-item-flag">{getCountryFlag(city.country)}</span>
+                    <span className="location-item-city">{city.city}</span>
+                    <span className="location-item-country">{city.country}</span>
+                    {city.state && <span className="location-item-state">{city.state}</span>}
+                  </button>
+                ))}
+              </>
             )}
           </div>
 
