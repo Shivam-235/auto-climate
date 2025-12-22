@@ -28,7 +28,7 @@ const navItems = [
   { path: '/maps', icon: Map, label: 'Weather Maps' },
 ];
 
-export default function Sidebar({ onLoginClick, onRegisterClick, theme, onThemeChange, isDark }) {
+export default function Sidebar({ onLoginClick, onRegisterClick, theme, onThemeChange, isDark, isOpen, onClose }) {
   const { user, logout, isAuthenticated } = useAuth();
 
   const themeOptions = [
@@ -38,7 +38,7 @@ export default function Sidebar({ onLoginClick, onRegisterClick, theme, onThemeC
   ];
 
   return (
-    <aside className={`sidebar ${isDark ? 'dark' : ''}`}>
+    <aside className={`sidebar ${isDark ? 'dark' : ''} ${isOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
           <Activity className="sidebar-logo-icon" />
@@ -71,6 +71,7 @@ export default function Sidebar({ onLoginClick, onRegisterClick, theme, onThemeC
             className={({ isActive }) => 
               `sidebar-link ${isActive ? 'active' : ''}`
             }
+            onClick={() => onClose && onClose()}
           >
             <item.icon className="sidebar-link-icon" />
             <span>{item.label}</span>

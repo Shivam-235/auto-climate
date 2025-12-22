@@ -1,8 +1,8 @@
 .hamburger-button {
   position: fixed;
-  top: 2rem;
-  right: 2rem;
-  z-index: 1000;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10000;
   width: 50px;
   height: 50px;
   background: rgba(0, 0, 0, 0.5);
@@ -17,6 +17,7 @@
   padding: 0;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .hamburger-button:hover {
@@ -175,6 +176,18 @@
 }
 
 @media (max-width: 768px) {
+  .hamburger-button {
+    top: 1rem;
+    right: 1rem;
+    width: 44px;
+    height: 44px;
+    z-index: 10001;
+  }
+  
+  .hamburger-button span {
+    width: 20px;
+  }
+  
   .menu-overlay {
     max-width: 100%;
   }
@@ -204,5 +217,19 @@
 
   .option-text p {
     font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hamburger-button {
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .hamburger-button span {
+    width: 18px;
+    height: 1.5px;
   }
 }

@@ -10,6 +10,7 @@ import LoginModal from './components/Auth/LoginModal';
 import RegisterModal from './components/Auth/RegisterModal';
 import { useAuth } from './context/AuthContext';
 import { User, LogOut } from 'lucide-react';
+import HamburgerMenu from './components/HamburgerMenu';
 import UVIndexPage from './pages/UVIndexPage';
 import HourlyForecastPage from './pages/HourlyForecastPage';
 import WeatherAlertsPage from './pages/WeatherAlertsPage';
@@ -42,6 +43,7 @@ import AviationServicePage from './pages/services/AviationServicePage';
 import HazardAtlasPage from './pages/services/HazardAtlasPage';
 import GeospatialServicePage from './pages/services/GeospatialServicePage';
 import './App.css';
+import './components/ResponsiveFixes.css';
 
 const SOCKET_URL = 'http://localhost:4000';
 
@@ -64,6 +66,7 @@ function App() {
   const socketRef = useRef(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
 
   // Theme state management
@@ -146,7 +149,21 @@ function App() {
         
         <Route path="/*" element={
           <div className={`app-layout ${isDark ? 'dark' : ''}`}>
+            {/* Mobile Menu Backdrop */}
+            {isMobileMenuOpen && (
+              <div 
+                className="mobile-menu-backdrop active" 
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+            )}
+            
+            <HamburgerMenu 
+              isOpen={isMobileMenuOpen}
+              onToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            />
             <Sidebar 
+              isOpen={isMobileMenuOpen}
+              onClose={() => setIsMobileMenuOpen(false)}
               onLoginClick={() => setShowLoginModal(true)}
               onRegisterClick={() => setShowRegisterModal(true)}
               theme={theme}
