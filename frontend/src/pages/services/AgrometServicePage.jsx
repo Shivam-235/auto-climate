@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Tractor, 
+import {
+  Tractor,
   ArrowLeft,
   MapPin,
   Droplets,
@@ -16,6 +16,7 @@ import {
   Sprout
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getCurrentWeather } from '../../services/weatherApi';
 
 const cropTypes = [
   { id: 'kharif', name: 'Kharif Crops', crops: ['Rice', 'Maize', 'Cotton', 'Soybean', 'Groundnut'] },
@@ -24,16 +25,16 @@ const cropTypes = [
 ];
 
 const states = [
-  'Punjab', 'Haryana', 'Uttar Pradesh', 'Madhya Pradesh', 'Maharashtra', 
+  'Punjab', 'Haryana', 'Uttar Pradesh', 'Madhya Pradesh', 'Maharashtra',
   'Karnataka', 'Andhra Pradesh', 'Tamil Nadu', 'Gujarat', 'Rajasthan'
 ];
 
 const generateAgrometData = (selectedState) => {
   const activities = [
-    'Sowing', 'Irrigation', 'Fertilizer Application', 'Pest Management', 
+    'Sowing', 'Irrigation', 'Fertilizer Application', 'Pest Management',
     'Harvesting', 'Field Preparation', 'Weeding', 'Spraying'
   ];
-  
+
   return {
     state: selectedState,
     issueDate: new Date().toLocaleDateString(),
@@ -84,11 +85,35 @@ export default function AgrometServicePage() {
   const [selectedCropType, setSelectedCropType] = useState('kharif');
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setData(generateAgrometData(selectedState));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch real weather for the selected state capital
+        const stateCapitals = {
+          'Punjab': 'Chandigarh', 'Haryana': 'Chandigarh', 'Uttar Pradesh': 'Lucknow',
+          'Madhya Pradesh': 'Bhopal', 'Maharashtra': 'Mumbai', 'Karnataka': 'Bangalore',
+          'Andhra Pradesh': 'Hyderabad', 'Tamil Nadu': 'Chennai', 'Gujarat': 'Ahmedabad',
+          'Rajasthan': 'Jaipur'
+        };
+        const capital = stateCapitals[selectedState] || selectedState;
+        const weatherData = await getCurrentWeather(capital);
+
+        const agrometData = generateAgrometData(selectedState);
+        if (weatherData?.current) {
+          agrometData.isRealData = true;
+          agrometData.weatherOutlook.maxTemp = Math.round(weatherData.current.temperature) || agrometData.weatherOutlook.maxTemp;
+          agrometData.weatherOutlook.minTemp = Math.round(weatherData.current.temperature - 8) || agrometData.weatherOutlook.minTemp;
+          agrometData.weatherOutlook.humidity = weatherData.current.humidity || agrometData.weatherOutlook.humidity;
+          agrometData.weatherOutlook.windSpeed = Math.round(weatherData.wind?.speed || 10);
+        }
+        setData(agrometData);
+      } catch (error) {
+        console.log('Using simulated agromet data - API unavailable:', error.message);
+        setData(generateAgrometData(selectedState));
+      }
       setLoading(false);
-    }, 600);
+    };
+    fetchData();
   }, [selectedState]);
 
   return (
@@ -241,7 +266,7 @@ export default function AgrometServicePage() {
                         {crop.stage}
                       </span>
                     </div>
-                    
+
                     <div className="crop-advisory-content">
                       <div className="advisory-section">
                         <div className="advisory-icon">
@@ -249,7 +274,7 @@ export default function AgrometServicePage() {
                         </div>
                         <p className="crop-advisory-text">{crop.advisory}</p>
                       </div>
-                      
+
                       <div className="activities-section">
                         <div className="section-label">
                           <Calendar size={14} />
@@ -264,7 +289,7 @@ export default function AgrometServicePage() {
                           ))}
                         </div>
                       </div>
-                      
+
                       <div className={`risk-indicator risk-${crop.riskLevel.toLowerCase()}`}>
                         <AlertTriangle size={16} />
                         <div className="risk-content">
@@ -287,10 +312,10 @@ export default function AgrometServicePage() {
                 </h3>
                 <div className="soil-status">
                   <div className="soil-gauge">
-                    <div className="gauge-fill" style={{ 
+                    <div className="gauge-fill" style={{
                       width: `${data.soilMoisture.current}%`,
-                      background: data.soilMoisture.status === 'Adequate' ? '#22c55e' : 
-                                  data.soilMoisture.status === 'Deficit' ? '#ef4444' : '#3b82f6'
+                      background: data.soilMoisture.status === 'Adequate' ? '#22c55e' :
+                        data.soilMoisture.status === 'Deficit' ? '#ef4444' : '#3b82f6'
                     }} />
                   </div>
                   <div className="soil-info">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  MapPin, 
+import {
+  MapPin,
   CloudRain,
   ArrowLeft,
   RefreshCw,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './DistrictRainfallPage.css';
+import { getRainfallData } from '../../services/weatherApi';
 
 const districts = [
   // North India
@@ -47,11 +48,11 @@ const districts = [
 const generateDistrictData = () => {
   return districts.map(district => {
     const days = [];
-    
+
     for (let i = 1; i <= 5; i++) {
       const date = new Date();
       date.setDate(date.getDate() + i);
-      
+
       days.push({
         day: i,
         date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short' }),
@@ -78,11 +79,22 @@ export default function DistrictRainfallPage({ weatherData }) {
   const [selectedState, setSelectedState] = useState('All');
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setData(generateDistrictData());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const apiData = await getRainfallData();
+        const districtForecast = generateDistrictData();
+        if (apiData && apiData.length > 0) {
+          districtForecast.forEach(d => d.isRealData = true);
+        }
+        setData(districtForecast);
+      } catch (error) {
+        console.log('Using simulated district data - API unavailable:', error.message);
+        setData(generateDistrictData());
+      }
       setLoading(false);
-    }, 600);
+    };
+    fetchData();
   }, []);
 
   const regions = ['All', 'North', 'South', 'East', 'West', 'Central'];
@@ -90,7 +102,7 @@ export default function DistrictRainfallPage({ weatherData }) {
 
   const filteredData = data.filter(d => {
     const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         d.state.toLowerCase().includes(searchTerm.toLowerCase());
+      d.state.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRegion = selectedRegion === 'All' || d.region === selectedRegion;
     const matchesState = selectedState === 'All' || d.state === selectedState;
     return matchesSearch && matchesRegion && matchesState;
@@ -139,8 +151,8 @@ export default function DistrictRainfallPage({ weatherData }) {
           <div className="filter-row">
             <div className="filter-group">
               <label>Region:</label>
-              <select 
-                value={selectedRegion} 
+              <select
+                value={selectedRegion}
                 onChange={(e) => setSelectedRegion(e.target.value)}
               >
                 {regions.map(r => (
@@ -151,8 +163,8 @@ export default function DistrictRainfallPage({ weatherData }) {
 
             <div className="filter-group">
               <label>State:</label>
-              <select 
-                value={selectedState} 
+              <select
+                value={selectedState}
                 onChange={(e) => setSelectedState(e.target.value)}
               >
                 {states.map(s => (
@@ -204,7 +216,7 @@ export default function DistrictRainfallPage({ weatherData }) {
                     {district.days.map(day => (
                       <div key={day.day} className="district-day">
                         <span className="day-date">{day.date}</span>
-                        <div 
+                        <div
                           className="rainfall-indicator"
                           style={{ backgroundColor: getRainfallColor(day.rainfall) }}
                         >

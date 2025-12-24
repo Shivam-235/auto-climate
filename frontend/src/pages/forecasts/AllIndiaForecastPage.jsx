@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  Thermometer, 
+import {
+  FileText,
+  Thermometer,
   Droplets,
   Wind,
   ArrowLeft,
@@ -15,40 +15,46 @@ import {
   Eye
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getStateWiseWeather } from '../../services/weatherApi';
 
 const stateData = [
-  { name: 'Jammu & Kashmir', region: 'North' },
-  { name: 'Himachal Pradesh', region: 'North' },
-  { name: 'Punjab', region: 'North' },
-  { name: 'Uttarakhand', region: 'North' },
-  { name: 'Delhi', region: 'North' },
-  { name: 'Uttar Pradesh', region: 'Central' },
-  { name: 'Rajasthan', region: 'West' },
-  { name: 'Gujarat', region: 'West' },
-  { name: 'Maharashtra', region: 'West' },
-  { name: 'Madhya Pradesh', region: 'Central' },
-  { name: 'Bihar', region: 'East' },
-  { name: 'West Bengal', region: 'East' },
-  { name: 'Odisha', region: 'East' },
-  { name: 'Andhra Pradesh', region: 'South' },
-  { name: 'Karnataka', region: 'South' },
-  { name: 'Tamil Nadu', region: 'South' },
-  { name: 'Kerala', region: 'South' },
+  { name: 'Jammu & Kashmir', region: 'North', capital: 'Srinagar' },
+  { name: 'Himachal Pradesh', region: 'North', capital: 'Shimla' },
+  { name: 'Punjab', region: 'North', capital: 'Chandigarh' },
+  { name: 'Uttarakhand', region: 'North', capital: 'Dehradun' },
+  { name: 'Delhi', region: 'North', capital: 'Delhi' },
+  { name: 'Uttar Pradesh', region: 'Central', capital: 'Lucknow' },
+  { name: 'Rajasthan', region: 'West', capital: 'Jaipur' },
+  { name: 'Gujarat', region: 'West', capital: 'Ahmedabad' },
+  { name: 'Maharashtra', region: 'West', capital: 'Mumbai' },
+  { name: 'Madhya Pradesh', region: 'Central', capital: 'Bhopal' },
+  { name: 'Bihar', region: 'East', capital: 'Patna' },
+  { name: 'West Bengal', region: 'East', capital: 'Kolkata' },
+  { name: 'Odisha', region: 'East', capital: 'Bhubaneswar' },
+  { name: 'Andhra Pradesh', region: 'South', capital: 'Amaravati' },
+  { name: 'Karnataka', region: 'South', capital: 'Bangalore' },
+  { name: 'Tamil Nadu', region: 'South', capital: 'Chennai' },
+  { name: 'Kerala', region: 'South', capital: 'Thiruvananthapuram' },
 ];
 
-const generateBulletinData = () => {
+const generateBulletinData = (realWeatherData = {}) => {
   const conditions = ['Clear', 'Partly Cloudy', 'Cloudy', 'Light Rain', 'Heavy Rain', 'Thunderstorms'];
-  
-  return stateData.map(state => ({
-    ...state,
-    maxTemp: Math.round(25 + Math.random() * 15),
-    minTemp: Math.round(15 + Math.random() * 10),
-    humidity: Math.round(40 + Math.random() * 50),
-    rainfall: Math.round(Math.random() * 30),
-    windSpeed: Math.round(5 + Math.random() * 20),
-    condition: conditions[Math.floor(Math.random() * conditions.length)],
-    warning: Math.random() > 0.7 ? ['Heavy Rain Warning', 'Heat Wave', 'Thunderstorm Alert'][Math.floor(Math.random() * 3)] : null,
-  }));
+
+  return stateData.map(state => {
+    const realData = realWeatherData[state.name];
+
+    return {
+      ...state,
+      maxTemp: realData?.current?.temperature || Math.round(25 + Math.random() * 15),
+      minTemp: realData?.current?.temperature ? realData.current.temperature - 5 : Math.round(15 + Math.random() * 10),
+      humidity: realData?.current?.humidity || Math.round(40 + Math.random() * 50),
+      rainfall: realData?.current?.rainfall || Math.round(Math.random() * 30),
+      windSpeed: realData?.wind?.speed || Math.round(5 + Math.random() * 20),
+      condition: realData?.current?.condition || conditions[Math.floor(Math.random() * conditions.length)],
+      warning: Math.random() > 0.7 ? ['Heavy Rain Warning', 'Heat Wave', 'Thunderstorm Alert'][Math.floor(Math.random() * 3)] : null,
+      isRealData: !!realData,
+    };
+  });
 };
 
 export default function AllIndiaForecastPage({ weatherData }) {
@@ -57,24 +63,36 @@ export default function AllIndiaForecastPage({ weatherData }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setBulletinData(generateBulletinData());
+    const fetchData = async () => {
+      setLoading(true);
+
+      try {
+        // Try to fetch real weather data
+        const stateWeather = await getStateWiseWeather();
+        setBulletinData(generateBulletinData(stateWeather));
+      } catch (error) {
+        console.log('Using simulated data - API unavailable:', error.message);
+        // Fallback to simulated data
+        setBulletinData(generateBulletinData({}));
+      }
+
       setLoading(false);
-    }, 600);
+    };
+
+    fetchData();
   }, []);
 
-  const today = new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
 
   const regions = ['All', 'North', 'South', 'East', 'West', 'Central'];
 
-  const filteredData = selectedRegion === 'All' 
-    ? bulletinData 
+  const filteredData = selectedRegion === 'All'
+    ? bulletinData
     : bulletinData.filter(s => s.region === selectedRegion);
 
   const getConditionIcon = (condition) => {
@@ -237,8 +255,8 @@ export default function AllIndiaForecastPage({ weatherData }) {
           <FileText size={20} />
           <div>
             <strong>Bulletin Notes</strong>
-            <p>This bulletin is issued for general guidance. For official warnings and alerts, 
-            please refer to India Meteorological Department (IMD) official communications.</p>
+            <p>This bulletin is issued for general guidance. For official warnings and alerts,
+              please refer to India Meteorological Department (IMD) official communications.</p>
           </div>
         </div>
       </div>

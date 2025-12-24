@@ -49,42 +49,61 @@ const mapStyles = [
 // Component to handle map center changes
 function MapController({ center, zoom }) {
   const map = useMap();
-  
+
   useEffect(() => {
     if (center) {
       map.setView(center, zoom || map.getZoom(), { animate: true });
     }
   }, [center, zoom, map]);
-  
+
   return null;
 }
 
 // Component for custom controls
 function CustomControls({ onLocate }) {
   const map = useMap();
-  
+
   return (
     <div className="leaflet-custom-controls">
-      <button 
+      <button
         className="leaflet-control-btn"
         onClick={() => map.zoomIn()}
         title="Zoom In"
+        type="button"
       >
-        <ZoomIn size={18} />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          <line x1="11" y1="8" x2="11" y2="14" />
+          <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
       </button>
-      <button 
+      <button
         className="leaflet-control-btn"
         onClick={() => map.zoomOut()}
         title="Zoom Out"
+        type="button"
       >
-        <ZoomOut size={18} />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
       </button>
-      <button 
+      <button
         className="leaflet-control-btn"
         onClick={onLocate}
         title="Go to Location"
+        type="button"
       >
-        <Locate size={18} />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="2" y1="12" x2="5" y2="12" />
+          <line x1="19" y1="12" x2="22" y2="12" />
+          <line x1="12" y1="2" x2="12" y2="5" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+          <circle cx="12" cy="12" r="7" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
       </button>
     </div>
   );
@@ -115,20 +134,20 @@ function WeatherPanel({ data, loading, error, onClose }) {
           <X size={20} />
         </button>
       </div>
-      
+
       {loading && (
         <div className="weather-panel-loading">
           <Loader2 className="spin" size={32} />
           <p>Fetching weather data...</p>
         </div>
       )}
-      
+
       {error && (
         <div className="weather-panel-error">
           <p>{error}</p>
         </div>
       )}
-      
+
       {data && !loading && (
         <div className="weather-panel-content">
           {/* Current Weather */}
@@ -139,7 +158,7 @@ function WeatherPanel({ data, loading, error, onClose }) {
             </div>
             <p className="panel-description">{data.current?.description}</p>
           </div>
-          
+
           {/* Weather Details Grid */}
           <div className="panel-grid">
             <div className="panel-stat">
@@ -163,7 +182,7 @@ function WeatherPanel({ data, loading, error, onClose }) {
               <strong>{data.current?.pressure} hPa</strong>
             </div>
           </div>
-          
+
           {/* AQI */}
           {data.aqi && (
             <div className="panel-section">
@@ -179,7 +198,7 @@ function WeatherPanel({ data, loading, error, onClose }) {
               </div>
             </div>
           )}
-          
+
           {/* Sun Times */}
           {data.sun && (
             <div className="panel-section">
@@ -195,7 +214,7 @@ function WeatherPanel({ data, loading, error, onClose }) {
               </div>
             </div>
           )}
-          
+
           {/* 5-Day Forecast */}
           {data.forecast && data.forecast.length > 0 && (
             <div className="panel-section">
@@ -213,7 +232,7 @@ function WeatherPanel({ data, loading, error, onClose }) {
               </div>
             </div>
           )}
-          
+
           {/* Coordinates */}
           <div className="panel-coords">
             <Navigation size={14} />
@@ -234,29 +253,29 @@ export default function WeatherMapsPage({ weatherData, socket }) {
   const [panelLoading, setPanelLoading] = useState(false);
   const [panelError, setPanelError] = useState(null);
   const mapRef = useRef(null);
-  
+
   const location = weatherData?.location || { city: 'Mumbai', lat: 19.076, lon: 72.8777 };
   const center = [location.lat, location.lon];
-  
+
   // Handle map click - fetch weather for clicked coordinates
   const handleMapClick = (lat, lng) => {
     if (!socket) {
       setPanelError('Socket not connected');
       return;
     }
-    
+
     setClickedMarker([lat, lng]);
     setPanelLoading(true);
     setPanelError(null);
     setPanelData(null);
-    
+
     socket.emit('getWeatherByCoords', { lat, lon: lng });
   };
-  
+
   // Listen for weather data response
   useEffect(() => {
     if (!socket) return;
-    
+
     const handleCoordsWeather = (response) => {
       setPanelLoading(false);
       if (response.success) {
@@ -265,37 +284,37 @@ export default function WeatherMapsPage({ weatherData, socket }) {
         setPanelError(response.error || 'Failed to fetch weather data');
       }
     };
-    
+
     socket.on('coordsWeatherData', handleCoordsWeather);
-    
+
     return () => {
       socket.off('coordsWeatherData', handleCoordsWeather);
     };
   }, [socket]);
-  
+
   const closePanel = () => {
     setPanelData(null);
     setPanelLoading(false);
     setPanelError(null);
     setClickedMarker(null);
   };
-  
+
   // OpenWeatherMap API key - uses the same one from backend or a demo key
   const OWM_API_KEY = import.meta.env.OPENWEATHER_API_KEY || 'demo';
-  
+
   const getWeatherTileUrl = (layer) => {
     return `https://tile.openweathermap.org/map/${layer}/{z}/{x}/{y}.png?appid=${OWM_API_KEY}`;
   };
-  
+
   const currentMapStyle = mapStyles.find(s => s.id === mapStyle);
   const currentLayer = mapLayers.find(l => l.id === activeLayer);
-  
+
   const handleLocate = () => {
     if (mapRef.current) {
       mapRef.current.setView(center, 10, { animate: true });
     }
   };
-  
+
   return (
     <div className="page-content">
       <header className="page-header">
@@ -305,7 +324,7 @@ export default function WeatherMapsPage({ weatherData, socket }) {
           <p className="page-subtitle">Interactive weather visualization for {location.city}</p>
         </div>
       </header>
-      
+
       {/* Map Style Selector */}
       <div className="map-type-selector">
         {mapStyles.map(style => (
@@ -319,7 +338,7 @@ export default function WeatherMapsPage({ weatherData, socket }) {
           </button>
         ))}
       </div>
-      
+
       {/* Weather Layer Selector */}
       <div className="card mt-6">
         <div className="card-header">
@@ -354,7 +373,7 @@ export default function WeatherMapsPage({ weatherData, socket }) {
           <p className="layer-description">{currentLayer.description}</p>
         )}
       </div>
-      
+
       {/* Interactive Leaflet Map */}
       <div className="card mt-6 map-container-card">
         <div className="leaflet-map-wrapper">
@@ -370,7 +389,7 @@ export default function WeatherMapsPage({ weatherData, socket }) {
               url={currentMapStyle.url}
               attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             />
-            
+
             {/* Weather Overlay Layer */}
             {showWeatherLayer && (
               <TileLayer
@@ -379,7 +398,7 @@ export default function WeatherMapsPage({ weatherData, socket }) {
                 attribution='&copy; <a href="https://openweathermap.org/">OpenWeatherMap</a>'
               />
             )}
-            
+
             {/* Location Marker */}
             <Marker position={center} icon={createCustomIcon('#3b82f6')}>
               <Popup>
@@ -394,7 +413,7 @@ export default function WeatherMapsPage({ weatherData, socket }) {
                 </div>
               </Popup>
             </Marker>
-            
+
             {/* Clicked Location Marker */}
             {clickedMarker && (
               <Marker position={clickedMarker} icon={createCustomIcon('#ef4444')}>
@@ -406,25 +425,25 @@ export default function WeatherMapsPage({ weatherData, socket }) {
                 </Popup>
               </Marker>
             )}
-            
+
             {/* Map Controller for programmatic updates */}
             <MapController center={center} />
-            
+
             {/* Custom Controls */}
             <CustomControls onLocate={handleLocate} />
-            
+
             {/* Map Click Handler */}
             <MapClickHandler onMapClick={handleMapClick} />
           </MapContainer>
-          
+
           {/* Weather Panel Sidebar */}
-          <WeatherPanel 
-            data={panelData} 
-            loading={panelLoading} 
-            error={panelError} 
-            onClose={closePanel} 
+          <WeatherPanel
+            data={panelData}
+            loading={panelLoading}
+            error={panelError}
+            onClose={closePanel}
           />
-          
+
           {/* Map Legend */}
           <div className="leaflet-legend">
             <div className="legend-header">
@@ -433,16 +452,16 @@ export default function WeatherMapsPage({ weatherData, socket }) {
             </div>
             <div className="legend-scale">
               <span>Low</span>
-              <div 
+              <div
                 className="legend-gradient"
-                style={{ 
-                  background: `linear-gradient(to right, transparent, ${currentLayer?.color || '#3b82f6'})` 
+                style={{
+                  background: `linear-gradient(to right, transparent, ${currentLayer?.color || '#3b82f6'})`
                 }}
               />
               <span>High</span>
             </div>
           </div>
-          
+
           {/* Coordinates Display */}
           <div className="leaflet-coords">
             <Navigation size={14} />
@@ -450,7 +469,7 @@ export default function WeatherMapsPage({ weatherData, socket }) {
           </div>
         </div>
       </div>
-      
+
       {/* Regional Overview */}
       <div className="grid-3 mt-6">
         <div className="card regional-card">
@@ -478,7 +497,7 @@ export default function WeatherMapsPage({ weatherData, socket }) {
           </div>
         </div>
       </div>
-      
+
       {/* Weather Radar Info */}
       <div className="card mt-6">
         <div className="card-header">

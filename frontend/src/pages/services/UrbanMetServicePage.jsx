@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Building2, 
+import {
+  Building2,
   ArrowLeft,
   MapPin,
   ThermometerSun,
@@ -17,6 +17,7 @@ import {
   Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getCurrentWeather, getAQILevel } from '../../services/weatherApi';
 
 const cities = [
   { id: 'delhi', name: 'Delhi NCR', population: '32M' },
@@ -102,11 +103,34 @@ export default function UrbanMetServicePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setData(generateUrbanData(selectedCity));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const cityInfo = cities.find(c => c.id === selectedCity);
+        const weatherData = await getCurrentWeather(cityInfo?.name || 'Delhi');
+
+        const urbanData = generateUrbanData(selectedCity);
+        if (weatherData?.current) {
+          urbanData.isRealData = true;
+          urbanData.weather.temperature = Math.round(weatherData.current.temperature) || urbanData.weather.temperature;
+          urbanData.weather.humidity = weatherData.current.humidity || urbanData.weather.humidity;
+          urbanData.weather.windSpeed = Math.round(weatherData.wind?.speed || 10);
+          urbanData.weather.visibility = weatherData.current.visibility || urbanData.weather.visibility;
+
+          // Update AQI if available
+          if (weatherData.aqi) {
+            urbanData.airQuality.aqi = weatherData.aqi.value || urbanData.airQuality.aqi;
+            urbanData.airQuality.level = getAQILevel(urbanData.airQuality.aqi)?.label || urbanData.airQuality.level;
+          }
+        }
+        setData(urbanData);
+      } catch (error) {
+        console.log('Using simulated urban data - API unavailable:', error.message);
+        setData(generateUrbanData(selectedCity));
+      }
       setLoading(false);
-    }, 600);
+    };
+    fetchData();
   }, [selectedCity]);
 
   const selectedCityInfo = cities.find(c => c.id === selectedCity);
@@ -217,9 +241,9 @@ export default function UrbanMetServicePage() {
                 </div>
                 <div className="aqi-scale">
                   {aqiLevels.map((level, idx) => (
-                    <div 
-                      key={idx} 
-                      className="scale-segment" 
+                    <div
+                      key={idx}
+                      className="scale-segment"
                       style={{ background: level.color }}
                       title={`${level.range}: ${level.label}`}
                     />
@@ -319,11 +343,11 @@ export default function UrbanMetServicePage() {
                     <ThermometerSun size={20} style={{ color: '#ef4444' }} />
                     <span className="hourly-temp">{hour.temp}°C</span>
                     <div className="hourly-aqi">
-                      <span 
-                        className="mini-aqi" 
-                        style={{ 
-                          background: hour.aqi <= 100 ? '#22c55e' : 
-                                     hour.aqi <= 200 ? '#eab308' : '#ef4444' 
+                      <span
+                        className="mini-aqi"
+                        style={{
+                          background: hour.aqi <= 100 ? '#22c55e' :
+                            hour.aqi <= 200 ? '#eab308' : '#ef4444'
                         }}
                       >
                         AQI {hour.aqi}

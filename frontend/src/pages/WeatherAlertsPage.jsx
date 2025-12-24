@@ -11,7 +11,7 @@ const alertTypes = {
 function generateAlerts(location) {
   const city = location?.city || 'Your Area';
   const now = new Date();
-  
+
   // Generate some sample alerts based on common weather scenarios
   const possibleAlerts = [
     {
@@ -63,7 +63,7 @@ function generateAlerts(location) {
       source: 'National Weather Service',
     },
   ];
-  
+
   // Randomly select some alerts
   const selectedAlerts = possibleAlerts.filter(() => Math.random() > 0.3);
   return selectedAlerts.length ? selectedAlerts : [possibleAlerts[2]]; // Always show at least UV warning
@@ -84,17 +84,17 @@ export default function WeatherAlertsPage({ weatherData }) {
   const [alerts, setAlerts] = useState([]);
   const [expandedAlert, setExpandedAlert] = useState(null);
   const [filter, setFilter] = useState('all');
-  
+
   useEffect(() => {
     setAlerts(generateAlerts(weatherData?.location));
   }, [weatherData?.location]);
-  
-  const filteredAlerts = filter === 'all' 
-    ? alerts 
+
+  const filteredAlerts = filter === 'all'
+    ? alerts
     : alerts.filter(a => a.type === filter);
-  
+
   const activeCount = alerts.filter(a => a.expires > new Date()).length;
-  
+
   return (
     <div className="page-content">
       <header className="page-header">
@@ -104,7 +104,7 @@ export default function WeatherAlertsPage({ weatherData }) {
           <p className="page-subtitle">Active warnings and advisories</p>
         </div>
       </header>
-      
+
       {/* Alert Summary */}
       <div className="grid-4 mt-6">
         <div className="alert-summary-card">
@@ -117,8 +117,8 @@ export default function WeatherAlertsPage({ weatherData }) {
         {Object.entries(alertTypes).map(([key, type]) => {
           const count = alerts.filter(a => a.type === key).length;
           return (
-            <div 
-              key={key} 
+            <div
+              key={key}
               className="alert-summary-card clickable"
               style={{ borderColor: count ? type.color : 'transparent' }}
               onClick={() => setFilter(filter === key ? 'all' : key)}
@@ -132,7 +132,7 @@ export default function WeatherAlertsPage({ weatherData }) {
           );
         })}
       </div>
-      
+
       {/* Alerts List */}
       <div className="alerts-container mt-6">
         {filteredAlerts.length === 0 ? (
@@ -146,14 +146,14 @@ export default function WeatherAlertsPage({ weatherData }) {
             const type = alertTypes[alert.type];
             const isExpanded = expandedAlert === alert.id;
             const Icon = type.icon;
-            
+
             return (
-              <div 
+              <div
                 key={alert.id}
                 className={`alert-card ${isExpanded ? 'expanded' : ''}`}
                 style={{ backgroundColor: type.bg, borderLeftColor: type.color }}
               >
-                <div 
+                <div
                   className="alert-header"
                   onClick={() => setExpandedAlert(isExpanded ? null : alert.id)}
                 >
@@ -169,7 +169,7 @@ export default function WeatherAlertsPage({ weatherData }) {
                   </div>
                   <ChevronRight className={`alert-expand-icon ${isExpanded ? 'rotated' : ''}`} />
                 </div>
-                
+
                 {isExpanded && (
                   <div className="alert-body">
                     <div className="alert-meta">
@@ -192,17 +192,17 @@ export default function WeatherAlertsPage({ weatherData }) {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="alert-section">
                       <h4>Description</h4>
                       <p>{alert.description}</p>
                     </div>
-                    
+
                     <div className="alert-section">
                       <h4>Instructions</h4>
                       <p>{alert.instruction}</p>
                     </div>
-                    
+
                     <div className="alert-source">
                       Source: {alert.source}
                     </div>
@@ -213,7 +213,7 @@ export default function WeatherAlertsPage({ weatherData }) {
           })
         )}
       </div>
-      
+
       {/* Safety Tips */}
       <div className="card mt-6">
         <div className="card-header">

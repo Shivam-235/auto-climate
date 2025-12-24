@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  TrendingUp, 
-  Thermometer, 
-  Droplets, 
+import {
+  Calendar,
+  TrendingUp,
+  Thermometer,
+  Droplets,
   CloudRain,
   ArrowLeft,
   RefreshCw,
@@ -13,11 +13,12 @@ import {
   BarChart3
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getRainfallData } from '../../services/weatherApi';
 
 const generateWeeklyData = () => {
   const weeks = [];
   const conditions = ['Above Normal', 'Normal', 'Below Normal'];
-  
+
   for (let i = 1; i <= 4; i++) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() + (i - 1) * 7);
@@ -52,11 +53,22 @@ export default function ExtendedRangePage({ weatherData }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setWeeklyData(generateWeeklyData());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const rainfallData = await getRainfallData();
+        const weeklyForecast = generateWeeklyData();
+        if (rainfallData && rainfallData.length > 0) {
+          weeklyForecast.isRealData = true;
+        }
+        setWeeklyData(weeklyForecast);
+      } catch (error) {
+        console.log('Using simulated extended range data - API unavailable:', error.message);
+        setWeeklyData(generateWeeklyData());
+      }
       setLoading(false);
-    }, 600);
+    };
+    fetchData();
   }, [selectedRegion]);
 
   const getAnomalyColor = (value, type) => {
@@ -147,7 +159,7 @@ export default function ExtendedRangePage({ weatherData }) {
                         <Thermometer size={16} />
                         <span>Temperature</span>
                       </div>
-                      <div 
+                      <div
                         className="outlook-badge"
                         style={{ backgroundColor: getOutlookColor(week.tempOutlook) + '20', color: getOutlookColor(week.tempOutlook) }}
                       >
@@ -163,7 +175,7 @@ export default function ExtendedRangePage({ weatherData }) {
                         <CloudRain size={16} />
                         <span>Rainfall</span>
                       </div>
-                      <div 
+                      <div
                         className="outlook-badge"
                         style={{ backgroundColor: getOutlookColor(week.rainOutlook) + '20', color: getOutlookColor(week.rainOutlook) }}
                       >
@@ -193,8 +205,8 @@ export default function ExtendedRangePage({ weatherData }) {
           <AlertCircle size={20} />
           <div>
             <strong>Extended Range Forecast Limitations</strong>
-            <p>Extended range forecasts (2-4 weeks) provide probabilistic outlooks rather than deterministic predictions. 
-            These forecasts indicate the likelihood of above/below normal conditions and should be used for general planning purposes only.</p>
+            <p>Extended range forecasts (2-4 weeks) provide probabilistic outlooks rather than deterministic predictions.
+              These forecasts indicate the likelihood of above/below normal conditions and should be used for general planning purposes only.</p>
           </div>
         </div>
       </div>

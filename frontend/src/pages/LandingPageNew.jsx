@@ -194,7 +194,7 @@ function WarpRig({ active, onWarpComplete }) {
       // Exponential curve: t^3 gives a slow start then extremely fast finish
       const speed = Math.pow(phaseT, 3) * 100; 
       
-      camera.position.z -= speed * delta * 20; // Move deep into negative Z
+      camera.position.z -= speed * delta * 5; // Move deep into negative Z
       
       // Warp FOV effect
       camera.fov = THREE.MathUtils.lerp(camera.fov, 120, delta * 5);

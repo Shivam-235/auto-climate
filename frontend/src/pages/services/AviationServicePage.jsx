@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Plane, 
+import {
+  Plane,
   ArrowLeft,
   MapPin,
   Wind,
@@ -18,6 +18,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getAviationWeather } from '../../services/weatherApi';
 
 const airports = [
   { code: 'DEL', name: 'Indira Gandhi International', city: 'Delhi' },
@@ -30,11 +31,19 @@ const airports = [
   { code: 'GOI', name: 'Dabolim Airport', city: 'Goa' },
 ];
 
-const generateAviationData = (airportCode) => {
-  const visibility = (Math.random() * 8 + 2).toFixed(1);
-  const windSpeed = Math.floor(Math.random() * 30 + 5);
+const generateAviationData = (airportCode, realWeather = null) => {
+  const airport = airports.find(a => a.code === airportCode);
+
+  // Use real weather data if available, otherwise generate random
+  const visibility = realWeather?.visibility || (Math.random() * 8 + 2).toFixed(1);
+  const windSpeed = realWeather?.windSpeed || Math.floor(Math.random() * 30 + 5);
+  const windDirection = realWeather?.windDirection || Math.floor(Math.random() * 360);
+  const temperature = realWeather?.temperature || Math.floor(Math.random() * 15 + 25);
+  const humidity = realWeather?.humidity || Math.floor(Math.random() * 40 + 50);
+  const pressure = realWeather?.pressure || Math.floor(Math.random() * 30 + 1000);
+
   const crosswind = Math.floor(Math.random() * 15);
-  
+
   const getFlightCategory = (vis, ceiling) => {
     if (vis >= 5 && ceiling >= 3000) return { cat: 'VFR', color: '#22c55e', desc: 'Visual Flight Rules' };
     if (vis >= 3 && ceiling >= 1000) return { cat: 'MVFR', color: '#3b82f6', desc: 'Marginal VFR' };
@@ -46,35 +55,35 @@ const generateAviationData = (airportCode) => {
   const category = getFlightCategory(parseFloat(visibility), ceiling);
 
   return {
-    airport: airports.find(a => a.code === airportCode),
+    airport,
     metar: {
-      raw: `${airportCode} ${new Date().toISOString().slice(11, 13)}50Z ${Math.floor(Math.random() * 360).toString().padStart(3, '0')}${windSpeed.toString().padStart(2, '0')}KT ${visibility}SM SCT0${Math.floor(Math.random() * 50 + 20)} BKN0${Math.floor(Math.random() * 80 + 40)} ${Math.floor(Math.random() * 15 + 25)}/${Math.floor(Math.random() * 10 + 15)} A${Math.floor(Math.random() * 30 + 2980)}`,
+      raw: realWeather?.metar || `${airportCode} ${new Date().toISOString().slice(11, 13)}50Z ${windDirection.toString().padStart(3, '0')}${windSpeed.toString().padStart(2, '0')}KT ${visibility}SM SCT0${Math.floor(Math.random() * 50 + 20)} BKN0${Math.floor(Math.random() * 80 + 40)} ${temperature}/${Math.floor(temperature - 10)} A${Math.floor(pressure * 0.02953 * 100)}`,
       time: new Date().toISOString().slice(11, 16) + ' UTC'
     },
     conditions: {
-      temperature: Math.floor(Math.random() * 15 + 25),
-      dewPoint: Math.floor(Math.random() * 10 + 15),
-      pressure: (Math.random() * 30 + 1000).toFixed(1),
-      humidity: Math.floor(Math.random() * 40 + 50),
+      temperature,
+      dewPoint: Math.floor(temperature - 10),
+      pressure: pressure.toFixed(1),
+      humidity,
       visibility: parseFloat(visibility),
       ceiling,
       category
     },
     wind: {
-      direction: Math.floor(Math.random() * 360),
+      direction: windDirection,
       speed: windSpeed,
       gusts: Math.random() > 0.5 ? windSpeed + Math.floor(Math.random() * 15) : null,
       crosswind,
       headwind: Math.floor(Math.random() * 20),
     },
     runways: [
-      { 
+      {
         id: `${Math.floor(Math.random() * 18 + 1).toString().padStart(2, '0')}L/R`,
         status: Math.random() > 0.2 ? 'Open' : 'Closed',
         surface: 'Dry',
         crosswind: crosswind,
       },
-      { 
+      {
         id: `${Math.floor(Math.random() * 18 + 19).toString().padStart(2, '0')}L/R`,
         status: 'Open',
         surface: Math.random() > 0.7 ? 'Wet' : 'Dry',
@@ -99,7 +108,8 @@ const generateAviationData = (airportCode) => {
     delays: {
       departure: Math.random() > 0.7 ? `${Math.floor(Math.random() * 45 + 15)} min` : 'None',
       arrival: Math.random() > 0.8 ? `${Math.floor(Math.random() * 30 + 10)} min` : 'None',
-    }
+    },
+    isRealData: !!realWeather,
   };
 };
 
@@ -109,11 +119,25 @@ export default function AviationServicePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setData(generateAviationData(selectedAirport));
+    const fetchData = async () => {
+      setLoading(true);
+      const airport = airports.find(a => a.code === selectedAirport);
+
+      try {
+        // Try to fetch real weather data
+        const aviationData = await getAviationWeather([airport.city]);
+        const realWeather = aviationData?.[0];
+        setData(generateAviationData(selectedAirport, realWeather));
+      } catch (error) {
+        console.log('Using simulated data - API unavailable:', error.message);
+        // Fallback to simulated data
+        setData(generateAviationData(selectedAirport, null));
+      }
+
       setLoading(false);
-    }, 600);
+    };
+
+    fetchData();
   }, [selectedAirport]);
 
   return (
@@ -182,9 +206,9 @@ export default function AviationServicePage() {
                     </div>
                   </div>
                 </div>
-                <div 
-                  className="flight-category-badge" 
-                  style={{ 
+                <div
+                  className="flight-category-badge"
+                  style={{
                     background: `linear-gradient(135deg, ${data.conditions.category.color}dd, ${data.conditions.category.color}99)`,
                     borderColor: data.conditions.category.color
                   }}
@@ -253,12 +277,12 @@ export default function AviationServicePage() {
                 </h3>
                 <div className="wind-display">
                   <div className="wind-compass">
-                    <Navigation 
-                      size={48} 
-                      style={{ 
-                        color: '#3b82f6', 
-                        transform: `rotate(${data.wind.direction}deg)` 
-                      }} 
+                    <Navigation
+                      size={48}
+                      style={{
+                        color: '#3b82f6',
+                        transform: `rotate(${data.wind.direction}deg)`
+                      }}
                     />
                   </div>
                   <div className="wind-details">

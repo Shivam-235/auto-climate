@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Waves, 
+import {
+  Waves,
   MapPin,
   ArrowLeft,
   RefreshCw,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './FlashFloodPage.css';
+import { getRainfallData } from '../../services/weatherApi';
 
 const riskLevels = {
   extreme: { color: '#dc2626', label: 'Extreme Risk', icon: '🔴', priority: 1 },
@@ -39,12 +40,12 @@ const vulnerableAreas = [
 
 const generateFlashFloodData = () => {
   const risks = ['extreme', 'high', 'moderate', 'low'];
-  
+
   return vulnerableAreas.map(area => {
     const risk = risks[Math.floor(Math.random() * risks.length)];
     const rainfall24h = Math.round(Math.random() * 150);
     const rainfall48h = rainfall24h + Math.round(Math.random() * 100);
-    
+
     return {
       ...area,
       risk,
@@ -73,11 +74,32 @@ export default function FlashFloodPage({ weatherData }) {
   const [filterRisk, setFilterRisk] = useState('all');
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setFloodData(generateFlashFloodData());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const apiData = await getRainfallData();
+        const floodForecast = generateFlashFloodData();
+        if (apiData && apiData.length > 0) {
+          // Enhance flood risk based on real rainfall data
+          floodForecast.forEach(area => {
+            const areaData = apiData.find(d =>
+              d.city?.toLowerCase().includes(area.state.toLowerCase().split(' ')[0]) ||
+              d.city?.toLowerCase().includes(area.name.toLowerCase().split(' ')[0])
+            );
+            if (areaData?.rainfall > 50) {
+              area.risk = 'high';
+              area.isRealData = true;
+            }
+          });
+        }
+        setFloodData(floodForecast);
+      } catch (error) {
+        console.log('Using simulated flood data - API unavailable:', error.message);
+        setFloodData(generateFlashFloodData());
+      }
       setLoading(false);
-    }, 600);
+    };
+    fetchData();
   }, []);
 
   const filteredData = filterRisk === 'all'
@@ -132,13 +154,13 @@ export default function FlashFloodPage({ weatherData }) {
           {Object.entries(riskLevels).map(([key, value]) => {
             const count = floodData.filter(d => d.risk === key).length;
             return (
-              <div 
+              <div
                 key={key}
                 className={`risk-stat-card ${filterRisk === key ? 'active' : ''}`}
                 onClick={() => setFilterRisk(filterRisk === key ? 'all' : key)}
-                style={{ 
+                style={{
                   borderColor: count > 0 ? value.color : 'rgba(255, 255, 255, 0.08)',
-                  color: value.color 
+                  color: value.color
                 }}
               >
                 <span className="risk-icon">{value.icon}</span>
@@ -156,8 +178,8 @@ export default function FlashFloodPage({ weatherData }) {
               <MapPin size={20} />
               Area-wise Flash Flood Risk
             </h3>
-            <button 
-              className="refresh-btn-small" 
+            <button
+              className="refresh-btn-small"
               onClick={() => {
                 setLoading(true);
                 setTimeout(() => {
@@ -181,15 +203,15 @@ export default function FlashFloodPage({ weatherData }) {
               <Shield size={64} />
               <h3>No Areas Found</h3>
               <p>
-                No areas matching the selected risk level. 
+                No areas matching the selected risk level.
                 {filterRisk !== 'all' && ' Try selecting a different filter.'}
               </p>
             </div>
           ) : (
             <div className="flood-area-grid">
               {filteredData.sort((a, b) => riskLevels[a.risk].priority - riskLevels[b.risk].priority).map((area, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className={`flood-area-card ${area.hasWarning ? 'has-warning' : ''}`}
                   style={{ borderLeftColor: riskLevels[area.risk].color }}
                 >
@@ -201,9 +223,9 @@ export default function FlashFloodPage({ weatherData }) {
                         <span className="area-state">{area.state} • {area.type}</span>
                       </div>
                     </div>
-                    <div 
+                    <div
                       className="risk-badge"
-                      style={{ 
+                      style={{
                         backgroundColor: riskLevels[area.risk].color + '20',
                         color: riskLevels[area.risk].color
                       }}
@@ -231,7 +253,7 @@ export default function FlashFloodPage({ weatherData }) {
                     <div className="metric">
                       <Waves size={14} />
                       <span className="metric-label">River Level</span>
-                      <span 
+                      <span
                         className="metric-value"
                         style={{ color: getRiverLevelColor(area.riverLevel) }}
                       >

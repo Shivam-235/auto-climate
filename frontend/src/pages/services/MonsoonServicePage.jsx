@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Cloud, 
+import {
+  Cloud,
   ArrowLeft,
   MapPin,
   Droplets,
@@ -14,6 +14,7 @@ import {
   Waves
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getRainfallData } from '../../services/weatherApi';
 
 const monsoonPhases = [
   { id: 'onset', name: 'Onset Phase', color: '#22c55e' },
@@ -64,10 +65,29 @@ export default function MonsoonServicePage({ weatherData }) {
   const [activeTab, setActiveTab] = useState('status');
 
   useEffect(() => {
-    setTimeout(() => {
-      setMonsoonData(generateMonsoonData());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch rainfall data for monsoon regions
+        const apiData = await getRainfallData(['Mumbai', 'Kerala', 'Bangalore', 'Goa', 'Gujarat', 'Delhi']);
+        // Merge real data with generated structure
+        const realMonsoonData = generateMonsoonData();
+        if (apiData && apiData.length > 0) {
+          realMonsoonData.isRealData = true;
+          realMonsoonData.regions = realMonsoonData.regions.map((region, idx) => ({
+            ...region,
+            rainfall: apiData[idx]?.rainfall?.toFixed(0) || region.rainfall,
+            humidity: apiData[idx]?.humidity || Math.floor(Math.random() * 30 + 60),
+          }));
+        }
+        setMonsoonData(realMonsoonData);
+      } catch (error) {
+        console.log('Using simulated monsoon data - API unavailable:', error.message);
+        setMonsoonData(generateMonsoonData());
+      }
       setLoading(false);
-    }, 800);
+    };
+    fetchData();
   }, []);
 
   if (loading) {
@@ -132,8 +152,8 @@ export default function MonsoonServicePage({ weatherData }) {
           <div className="progress-section">
             <span className="progress-label">Season Progress</span>
             <div className="progress-bar-bg">
-              <div 
-                className="progress-bar-fill" 
+              <div
+                className="progress-bar-fill"
                 style={{ width: `${monsoonData.seasonalProgress}%`, background: monsoonData.currentPhase.color }}
               />
             </div>
@@ -143,21 +163,21 @@ export default function MonsoonServicePage({ weatherData }) {
 
         {/* Tab Navigation */}
         <div className="tab-navigation">
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'status' ? 'active' : ''}`}
             onClick={() => setActiveTab('status')}
           >
             <Cloud size={16} />
             Regional Status
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'indicators' ? 'active' : ''}`}
             onClick={() => setActiveTab('indicators')}
           >
             <TrendingUp size={16} />
             Monsoon Indicators
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'forecast' ? 'active' : ''}`}
             onClick={() => setActiveTab('forecast')}
           >
@@ -189,9 +209,9 @@ export default function MonsoonServicePage({ weatherData }) {
                     <span className="rainfall-normal">Normal: {region.normal} mm</span>
                   </div>
                   <div className="rainfall-bar-bg">
-                    <div 
+                    <div
                       className="rainfall-bar-fill"
-                      style={{ 
+                      style={{
                         width: `${Math.min((parseFloat(region.rainfall) / parseFloat(region.normal)) * 100, 150)}%`,
                         background: parseFloat(region.rainfall) > parseFloat(region.normal) ? '#22c55e' : '#3b82f6'
                       }}
@@ -261,11 +281,11 @@ export default function MonsoonServicePage({ weatherData }) {
                   {monsoonData.indicators.pressureTrend}
                 </span>
                 <p className="pressure-note">
-                  {monsoonData.indicators.pressureTrend === 'Falling' 
-                    ? 'Favorable for monsoon advancement' 
+                  {monsoonData.indicators.pressureTrend === 'Falling'
+                    ? 'Favorable for monsoon advancement'
                     : monsoonData.indicators.pressureTrend === 'Rising'
-                    ? 'May slow monsoon progress'
-                    : 'Stable monsoon conditions expected'}
+                      ? 'May slow monsoon progress'
+                      : 'Stable monsoon conditions expected'}
                 </p>
               </div>
             </div>

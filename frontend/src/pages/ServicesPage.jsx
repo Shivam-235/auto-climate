@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
-import { 
-  CloudRain, 
-  Cloud, 
-  Wind, 
-  Tractor, 
-  BarChart3, 
-  Building2, 
-  Plane, 
-  AlertTriangle, 
+import {
+  CloudRain,
+  Cloud,
+  Wind,
+  Tractor,
+  BarChart3,
+  Building2,
+  Plane,
+  AlertTriangle,
   Globe,
   ArrowRight
 } from 'lucide-react';
@@ -104,8 +104,8 @@ export default function ServicesPage() {
 
         <main className="services-grid">
           {services.map((service) => (
-            <div 
-              key={service.id} 
+            <div
+              key={service.id}
               className={`service-card service-card-${service.color}`}
             >
               <div className="service-card-icon">
@@ -114,7 +114,7 @@ export default function ServicesPage() {
               <div className="service-card-content">
                 <h3 className="service-card-title">{service.title}</h3>
                 <p className="service-card-description">{service.description}</p>
-                <Link 
+                <Link
                   to={service.path}
                   className="service-card-link"
                 >

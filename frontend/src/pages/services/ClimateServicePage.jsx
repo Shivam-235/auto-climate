@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
+import {
+  BarChart3,
   ArrowLeft,
   TrendingUp,
   TrendingDown,
@@ -16,6 +16,7 @@ import {
   Info
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getMajorCitiesWeather } from '../../services/weatherApi';
 
 const timeRanges = [
   { id: 'monthly', name: 'Monthly' },
@@ -33,7 +34,7 @@ const climateIndicators = [
 const generateClimateData = () => {
   const years = [];
   const currentYear = new Date().getFullYear();
-  
+
   for (let i = 9; i >= 0; i--) {
     years.push({
       year: currentYear - i,
@@ -93,10 +94,25 @@ export default function ClimateServicePage({ weatherData }) {
   const [selectedIndicator, setSelectedIndicator] = useState('temperature');
 
   useEffect(() => {
-    setTimeout(() => {
-      setData(generateClimateData());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const citiesWeather = await getMajorCitiesWeather();
+        const climateData = generateClimateData();
+        if (citiesWeather && citiesWeather.length > 0) {
+          climateData.isRealData = true;
+          // Use real temperature data for current anomaly
+          const avgTemp = citiesWeather.reduce((sum, c) => sum + (c.current?.temperature || 25), 0) / citiesWeather.length;
+          climateData.currentAnomaly.temperature = (avgTemp - 25).toFixed(1);
+        }
+        setData(climateData);
+      } catch (error) {
+        console.log('Using simulated climate data - API unavailable:', error.message);
+        setData(generateClimateData());
+      }
       setLoading(false);
-    }, 800);
+    };
+    fetchData();
   }, []);
 
   if (loading) {

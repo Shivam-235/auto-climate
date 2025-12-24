@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  CloudRain, 
+import {
+  CloudRain,
   ArrowLeft,
   MapPin,
   Droplets,
@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RainEffect from '../../components/RainEffect';
+import { getRainfallData } from '../../services/weatherApi';
 
 const regions = [
   { id: 'north', name: 'North India', states: ['Delhi', 'Punjab', 'Haryana', 'Uttar Pradesh', 'Uttarakhand', 'Himachal Pradesh', 'J&K'], color: '#3b82f6' },
@@ -57,7 +58,7 @@ const generateRainfallData = () => {
   return regions.map(region => {
     const currentRainfall = Math.random() * 60;
     const intensityInfo = getIntensityInfo(currentRainfall);
-    
+
     return {
       ...region,
       currentRainfall: currentRainfall.toFixed(1),
@@ -112,7 +113,7 @@ const generateHourlyData = () => {
   const hours = [];
   const now = new Date();
   let cumulative = 0;
-  
+
   for (let i = 23; i >= 0; i--) {
     const hour = new Date(now - i * 3600000);
     const rainfall = Math.random() * 12;
@@ -134,7 +135,7 @@ const generateLiveStations = () => {
     'Safdarjung', 'Palam', 'Lodhi Road', 'Ridge', 'Mungeshpur',
     'Najafgarh', 'Pitampura', 'Ayanagar', 'Sports Complex', 'Jafarpur'
   ];
-  
+
   return stationNames.map((name, i) => ({
     id: i + 1,
     name,
@@ -157,14 +158,40 @@ export default function RainfallServicePage() {
   const [animatedRainfall, setAnimatedRainfall] = useState(0);
   const [hoveredState, setHoveredState] = useState(null);
 
-  const loadData = useCallback(() => {
+  const loadData = useCallback(async () => {
     setLoading(true);
-    setTimeout(() => {
+    try {
+      // Try to fetch real rainfall data
+      const apiData = await getRainfallData();
+      if (apiData && apiData.length > 0) {
+        // Merge API data with the region structure
+        const enhancedData = generateRainfallData().map((region, idx) => {
+          const cityData = apiData.find(d =>
+            region.states.some(state =>
+              d.city?.toLowerCase().includes(state.toLowerCase().split(' ')[0])
+            )
+          );
+          if (cityData) {
+            return {
+              ...region,
+              currentRainfall: (cityData.rainfall || Math.random() * 60).toFixed(1),
+              humidity: cityData.humidity || region.humidity,
+              isRealData: true,
+            };
+          }
+          return region;
+        });
+        setRainfallData(enhancedData);
+      } else {
+        setRainfallData(generateRainfallData());
+      }
+    } catch (error) {
+      console.log('Using simulated rainfall data - API unavailable:', error.message);
       setRainfallData(generateRainfallData());
-      setHourlyData(generateHourlyData());
-      setLiveStations(generateLiveStations());
-      setLoading(false);
-    }, 800);
+    }
+    setHourlyData(generateHourlyData());
+    setLiveStations(generateLiveStations());
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -197,7 +224,7 @@ export default function RainfallServicePage() {
   }, [loadData]);
 
   const selectedData = rainfallData.find(r => r.id === selectedRegion);
-  
+
   const nationalSummary = useMemo(() => ({
     totalStations: rainfallData.reduce((sum, r) => sum + (r.stations || 0), 0),
     reportingStations: rainfallData.reduce((sum, r) => sum + (r.reportingStations || 0), 0),
@@ -212,12 +239,12 @@ export default function RainfallServicePage() {
   return (
     <div className="forecast-subpage rainfall-page">
       {/* Three.js Rain Effect Background */}
-      <RainEffect 
-        intensity={Math.min(rainIntensity, 2)} 
+      <RainEffect
+        intensity={Math.min(rainIntensity, 2)}
         showLightning={showLightning}
         className="rain-bg-effect"
       />
-      
+
       <div className="page-bg rain-page-bg">
         <div className="bg-orb bg-orb-1" />
         <div className="bg-orb bg-orb-2" />
@@ -348,13 +375,13 @@ export default function RainfallServicePage() {
                         </linearGradient>
                       </defs>
                       <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="12" />
-                      <circle 
-                        cx="100" 
-                        cy="100" 
-                        r="90" 
-                        fill="none" 
+                      <circle
+                        cx="100"
+                        cy="100"
+                        r="90"
+                        fill="none"
                         stroke={selectedData?.intensityColor}
-                        strokeWidth="12" 
+                        strokeWidth="12"
                         strokeLinecap="round"
                         strokeDasharray={`${(animatedRainfall / 70) * 565} 565`}
                         transform="rotate(-90 100 100)"
@@ -368,17 +395,17 @@ export default function RainfallServicePage() {
                   </div>
                   <div className="current-rainfall-info">
                     <h3>{selectedData?.name}</h3>
-                    <div className="intensity-badge" style={{ 
+                    <div className="intensity-badge" style={{
                       background: `${selectedData?.intensityColor}20`,
                       color: selectedData?.intensityColor,
                       borderColor: selectedData?.intensityColor
                     }}>
-                      {selectedData?.intensity === 'Heavy' || selectedData?.intensity === 'Very Heavy' ? 
+                      {selectedData?.intensity === 'Heavy' || selectedData?.intensity === 'Very Heavy' ?
                         <Zap size={16} /> : <Droplets size={16} />}
                       {selectedData?.intensity} Rainfall
                     </div>
                     <p className="intensity-description">{selectedData?.intensityDescription}</p>
-                    
+
                     {selectedData?.alerts?.length > 0 && (
                       <div className="inline-alert">
                         <AlertTriangle size={16} />
@@ -387,7 +414,7 @@ export default function RainfallServicePage() {
                     )}
                   </div>
                 </div>
-                
+
                 {/* Rainfall Totals */}
                 <div className="rainfall-totals-grid">
                   <div className="total-card">
@@ -526,9 +553,9 @@ export default function RainfallServicePage() {
                     </div>
                     <div className="departure-bar-container">
                       <div className="departure-center-line" />
-                      <div 
+                      <div
                         className={`departure-indicator ${parseFloat(selectedData?.departure) >= 0 ? 'positive' : 'negative'}`}
-                        style={{ 
+                        style={{
                           width: `${Math.abs(parseFloat(selectedData?.departure)) / 60 * 50}%`,
                           [parseFloat(selectedData?.departure) >= 0 ? 'left' : 'right']: '50%',
                           background: parseFloat(selectedData?.departure) >= 0 ? '#22c55e' : '#ef4444'
@@ -536,7 +563,7 @@ export default function RainfallServicePage() {
                       />
                     </div>
                     <div className="departure-value-display">
-                      <span 
+                      <span
                         className="departure-value"
                         style={{ color: parseFloat(selectedData?.departure) >= 0 ? '#22c55e' : '#ef4444' }}
                       >
@@ -558,8 +585,8 @@ export default function RainfallServicePage() {
                     </div>
                     <div className="comparison-row">
                       <span className="comp-label">Difference</span>
-                      <span className="comp-value" style={{ 
-                        color: parseFloat(selectedData?.departure) >= 0 ? '#22c55e' : '#ef4444' 
+                      <span className="comp-value" style={{
+                        color: parseFloat(selectedData?.departure) >= 0 ? '#22c55e' : '#ef4444'
                       }}>
                         {(parseFloat(selectedData?.monthlyTotal) - parseFloat(selectedData?.normalRainfall)).toFixed(1)} mm
                       </span>
@@ -571,28 +598,28 @@ export default function RainfallServicePage() {
 
             {/* View Mode Toggle */}
             <div className="view-toggle rainfall-view-toggle">
-              <button 
+              <button
                 className={`toggle-btn ${viewMode === 'overview' ? 'active' : ''}`}
                 onClick={() => setViewMode('overview')}
               >
                 <BarChart3 size={16} />
                 7-Day Forecast
               </button>
-              <button 
+              <button
                 className={`toggle-btn ${viewMode === 'hourly' ? 'active' : ''}`}
                 onClick={() => setViewMode('hourly')}
               >
                 <Clock size={16} />
                 24-Hour Trend
               </button>
-              <button 
+              <button
                 className={`toggle-btn ${viewMode === 'states' ? 'active' : ''}`}
                 onClick={() => setViewMode('states')}
               >
                 <Map size={16} />
                 State-wise Data
               </button>
-              <button 
+              <button
                 className={`toggle-btn ${viewMode === 'stations' ? 'active' : ''}`}
                 onClick={() => setViewMode('stations')}
               >
@@ -614,9 +641,9 @@ export default function RainfallServicePage() {
                       <span className="forecast-day-name">{idx === 0 ? 'Today' : day.day}</span>
                       <span className="forecast-date">{day.date}</span>
                       <div className="forecast-icon">
-                        <CloudRain size={32} style={{ 
-                          color: day.intensity === 'Heavy' ? '#ef4444' : 
-                                 day.intensity === 'Moderate' ? '#f59e0b' : '#3b82f6' 
+                        <CloudRain size={32} style={{
+                          color: day.intensity === 'Heavy' ? '#ef4444' :
+                            day.intensity === 'Moderate' ? '#f59e0b' : '#3b82f6'
                         }} />
                       </div>
                       <span className="forecast-rainfall">{day.rainfall} mm</span>
@@ -649,20 +676,20 @@ export default function RainfallServicePage() {
                   <div className="chart-container">
                     {hourlyData.map((hour, idx) => (
                       <div key={idx} className="hourly-bar-wrapper">
-                        <div 
-                          className="hourly-bar-enhanced" 
-                          style={{ 
+                        <div
+                          className="hourly-bar-enhanced"
+                          style={{
                             height: `${Math.min(parseFloat(hour.rainfall) / 12 * 100, 100)}%`,
                           }}
                         >
-                          <div 
+                          <div
                             className="bar-fill"
                             style={{
-                              background: parseFloat(hour.rainfall) > 8 ? 
-                                'linear-gradient(to top, #ef4444, #f87171)' : 
-                                parseFloat(hour.rainfall) > 4 ? 
-                                'linear-gradient(to top, #f59e0b, #fbbf24)' : 
-                                'linear-gradient(to top, #3b82f6, #60a5fa)'
+                              background: parseFloat(hour.rainfall) > 8 ?
+                                'linear-gradient(to top, #ef4444, #f87171)' :
+                                parseFloat(hour.rainfall) > 4 ?
+                                  'linear-gradient(to top, #f59e0b, #fbbf24)' :
+                                  'linear-gradient(to top, #3b82f6, #60a5fa)'
                             }}
                           />
                           <span className="bar-tooltip">
@@ -703,8 +730,8 @@ export default function RainfallServicePage() {
                 </h3>
                 <div className="states-grid">
                   {selectedData?.stateData?.map((state, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className={`state-card ${hoveredState === idx ? 'hovered' : ''}`}
                       onMouseEnter={() => setHoveredState(idx)}
                       onMouseLeave={() => setHoveredState(null)}
@@ -737,8 +764,8 @@ export default function RainfallServicePage() {
                         </div>
                         <div className="stat-row departure">
                           <span>Departure</span>
-                          <span style={{ 
-                            color: parseFloat(state.departure) >= 0 ? '#22c55e' : '#ef4444' 
+                          <span style={{
+                            color: parseFloat(state.departure) >= 0 ? '#22c55e' : '#ef4444'
                           }}>
                             {parseFloat(state.departure) >= 0 ? '+' : ''}{state.departure}%
                           </span>

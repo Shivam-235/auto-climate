@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Navigation, 
+import {
+  Navigation,
   MapPin,
   ArrowLeft,
   RefreshCw,
@@ -14,27 +14,28 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './CycloneTrackPage.css';
+import { getCurrentWeather } from '../../services/weatherApi';
 
 // Simulated cyclone data
 const generateCycloneData = () => {
   const hasActiveCyclone = Math.random() > 0.5;
-  
+
   if (!hasActiveCyclone) {
     return null;
   }
 
   const categories = ['Depression', 'Deep Depression', 'Cyclonic Storm', 'Severe Cyclonic Storm', 'Very Severe Cyclonic Storm'];
   const basins = ['Bay of Bengal', 'Arabian Sea'];
-  
+
   const positions = [];
   let lat = 12 + Math.random() * 8;
   let lon = 82 + Math.random() * 10;
-  
+
   // Generate track positions
   for (let i = 0; i < 10; i++) {
     const date = new Date();
     date.setHours(date.getHours() + i * 6);
-    
+
     positions.push({
       time: date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', hour12: true }),
       lat: lat.toFixed(1),
@@ -43,7 +44,7 @@ const generateCycloneData = () => {
       category: categories[Math.min(Math.floor(i / 2), categories.length - 1)],
       isPredicted: i > 3,
     });
-    
+
     lat += 0.5 + Math.random() * 0.5;
     lon -= 0.3 + Math.random() * 0.4;
   }
@@ -76,11 +77,26 @@ export default function CycloneTrackPage({ weatherData }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setCycloneData(generateCycloneData());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Check coastal weather conditions
+        const coastalWeather = await getCurrentWeather('Chennai');
+        const cycloneForecast = generateCycloneData();
+        if (cycloneForecast && coastalWeather?.wind?.speed > 15) {
+          cycloneForecast.realConditions = {
+            windSpeed: coastalWeather.wind.speed,
+            pressure: coastalWeather.pressure || 1010,
+          };
+        }
+        setCycloneData(cycloneForecast);
+      } catch (error) {
+        console.log('Using simulated cyclone data - API unavailable:', error.message);
+        setCycloneData(generateCycloneData());
+      }
       setLoading(false);
-    }, 800);
+    };
+    fetchData();
   }, []);
 
   const refreshData = () => {
@@ -210,11 +226,11 @@ export default function CycloneTrackPage({ weatherData }) {
 
               <div className="track-timeline">
                 {cycloneData.positions.map((pos, idx) => (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className={`track-point ${pos.isPredicted ? 'predicted' : 'observed'}`}
                   >
-                    <div 
+                    <div
                       className="track-marker"
                       style={{ backgroundColor: getCategoryColor(pos.category) }}
                     />
@@ -222,7 +238,7 @@ export default function CycloneTrackPage({ weatherData }) {
                       <span className="track-time">{pos.time}</span>
                       <span className="track-position">{pos.lat}°N, {pos.lon}°E</span>
                       <span className="track-intensity">{pos.intensity} km/h</span>
-                      <span 
+                      <span
                         className="track-category"
                         style={{ color: getCategoryColor(pos.category) }}
                       >
@@ -291,7 +307,7 @@ export default function CycloneTrackPage({ weatherData }) {
                   <span className="historical-name">{cyclone.name}</span>
                   <span className="historical-year">{cyclone.year}</span>
                 </div>
-                <span 
+                <span
                   className="historical-category"
                   style={{ color: getCategoryColor(cyclone.category) }}
                 >

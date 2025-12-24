@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Palmtree, 
+import {
+  Palmtree,
   MapPin,
   ArrowLeft,
   RefreshCw,
@@ -16,88 +16,89 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './TourismForecastPage.css';
+import { getTourismWeather } from '../../services/weatherApi';
 
 const touristDestinations = [
-  { 
-    name: 'Goa', 
-    type: 'Beach', 
+  {
+    name: 'Goa',
+    type: 'Beach',
     bestSeason: 'Nov - Feb',
     description: 'Famous beaches and vibrant nightlife',
     image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&q=80'
   },
-  { 
-    name: 'Manali', 
-    type: 'Hill Station', 
+  {
+    name: 'Manali',
+    type: 'Hill Station',
     bestSeason: 'Mar - Jun, Oct - Feb',
     description: 'Snow-capped mountains and adventure sports',
     image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80'
   },
-  { 
-    name: 'Kerala Backwaters', 
-    type: 'Nature', 
+  {
+    name: 'Kerala Backwaters',
+    type: 'Nature',
     bestSeason: 'Sep - Mar',
     description: 'Serene backwaters and houseboat cruises',
     image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=800&q=80'
   },
-  { 
-    name: 'Rajasthan (Jaipur)', 
-    type: 'Heritage', 
+  {
+    name: 'Rajasthan (Jaipur)',
+    type: 'Heritage',
     bestSeason: 'Oct - Mar',
     description: 'Royal palaces and rich cultural heritage',
     image: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=800&q=80'
   },
-  { 
-    name: 'Shimla', 
-    type: 'Hill Station', 
+  {
+    name: 'Shimla',
+    type: 'Hill Station',
     bestSeason: 'Mar - Jun, Dec - Feb',
     description: 'Colonial charm and mountain views',
     image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80'
   },
-  { 
-    name: 'Andaman Islands', 
-    type: 'Beach', 
+  {
+    name: 'Andaman Islands',
+    type: 'Beach',
     bestSeason: 'Oct - May',
     description: 'Pristine beaches and water sports',
     image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80'
   },
-  { 
-    name: 'Darjeeling', 
-    type: 'Hill Station', 
+  {
+    name: 'Darjeeling',
+    type: 'Hill Station',
     bestSeason: 'Mar - May, Oct - Dec',
     description: 'Tea gardens and Himalayan views',
     image: 'https://images.unsplash.com/photo-1605640840605-14ac1855827b?w=800&q=80'
   },
-  { 
-    name: 'Varanasi', 
-    type: 'Spiritual', 
+  {
+    name: 'Varanasi',
+    type: 'Spiritual',
     bestSeason: 'Oct - Mar',
     description: 'Ancient spiritual city on the Ganges',
     image: 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=800&q=80'
   },
-  { 
-    name: 'Agra', 
-    type: 'Heritage', 
+  {
+    name: 'Agra',
+    type: 'Heritage',
     bestSeason: 'Oct - Mar',
     description: 'Home of the iconic Taj Mahal',
     image: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&q=80'
   },
-  { 
-    name: 'Leh-Ladakh', 
-    type: 'Adventure', 
+  {
+    name: 'Leh-Ladakh',
+    type: 'Adventure',
     bestSeason: 'May - Sep',
     description: 'High-altitude desert and Buddhist monasteries',
     image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'
   },
-  { 
-    name: 'Ooty', 
-    type: 'Hill Station', 
+  {
+    name: 'Ooty',
+    type: 'Hill Station',
     bestSeason: 'Mar - Jun, Sep - Nov',
     description: 'Queen of hill stations with tea estates',
     image: 'https://images.unsplash.com/photo-1605649487212-47a7d24f08eb?w=800&q=80'
   },
-  { 
-    name: 'Udaipur', 
-    type: 'Heritage', 
+  {
+    name: 'Udaipur',
+    type: 'Heritage',
     bestSeason: 'Sep - Mar',
     description: 'City of lakes and royal palaces',
     image: 'https://images.unsplash.com/photo-1585217935108-c88a7e6cecd8?w=800&q=80'
@@ -107,14 +108,14 @@ const touristDestinations = [
 const generateTourismData = () => {
   const conditions = ['Sunny', 'Partly Cloudy', 'Cloudy', 'Light Showers', 'Rainy'];
   const ratings = ['Excellent', 'Good', 'Fair', 'Not Ideal'];
-  
+
   return touristDestinations.map(dest => {
     const days = [];
-    
+
     for (let i = 1; i <= 5; i++) {
       const date = new Date();
       date.setDate(date.getDate() + i);
-      
+
       days.push({
         day: i,
         date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
@@ -144,17 +145,41 @@ export default function TourismForecastPage({ weatherData }) {
   const [selectedType, setSelectedType] = useState('All');
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setData(generateTourismData());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const destinations = touristDestinations.map(d => d.name);
+        const apiData = await getTourismWeather(destinations);
+
+        let tourismData = generateTourismData();
+        if (apiData && Object.keys(apiData).length > 0) {
+          tourismData = tourismData.map(dest => {
+            const realData = apiData[dest.name];
+            if (realData?.current) {
+              dest.isRealData = true;
+              dest.avgTemp = Math.round(realData.current.temperature) || dest.avgTemp;
+              if (dest.days?.length > 0) {
+                dest.days[0].maxTemp = Math.round(realData.current.temperature) || dest.days[0].maxTemp;
+                dest.days[0].humidity = realData.current.humidity || dest.days[0].humidity;
+              }
+            }
+            return dest;
+          });
+        }
+        setData(tourismData);
+      } catch (error) {
+        console.log('Using simulated tourism data - API unavailable:', error.message);
+        setData(generateTourismData());
+      }
       setLoading(false);
-    }, 600);
+    };
+    fetchData();
   }, []);
 
   const types = ['All', 'Beach', 'Hill Station', 'Heritage', 'Nature', 'Spiritual', 'Adventure'];
 
-  const filteredData = selectedType === 'All' 
-    ? data 
+  const filteredData = selectedType === 'All'
+    ? data
     : data.filter(d => d.type === selectedType);
 
   const getConditionIcon = (condition) => {
@@ -229,8 +254,8 @@ export default function TourismForecastPage({ weatherData }) {
               <div key={dest.name} className="card tourism-card">
                 {/* Destination Image */}
                 <div className="dest-image-container">
-                  <img 
-                    src={dest.image} 
+                  <img
+                    src={dest.image}
                     alt={dest.name}
                     className="dest-image"
                     loading="lazy"
@@ -244,7 +269,7 @@ export default function TourismForecastPage({ weatherData }) {
                     <div className="dest-info">
                       <h3 className="dest-name">{dest.name}</h3>
                     </div>
-                    <div 
+                    <div
                       className="visit-rating"
                       style={{ color: getRatingColor(dest.visitRating) }}
                     >

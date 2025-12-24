@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Users, 
+import {
+  Users,
   MapPin,
   ArrowLeft,
   RefreshCw,
@@ -14,9 +14,11 @@ import {
   Wind,
   Thermometer,
   Clock,
-  Filter
+  Filter,
+  X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import './PublicObservation.css';
 
 const conditions = [
   { id: 'sunny', label: 'Sunny', icon: Sun },
@@ -27,7 +29,7 @@ const conditions = [
 
 const generateObservations = () => {
   const locations = [
-    'Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 
+    'Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata',
     'Hyderabad', 'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow'
   ];
   const conditionTypes = ['sunny', 'cloudy', 'rainy', 'windy'];
@@ -45,21 +47,21 @@ const generateObservations = () => {
   ];
 
   const observations = [];
-  
+
   for (let i = 0; i < 15; i++) {
     const hoursAgo = Math.floor(Math.random() * 24);
     const time = new Date();
     time.setHours(time.getHours() - hoursAgo);
-    
+
     observations.push({
       id: i + 1,
       location: locations[Math.floor(Math.random() * locations.length)],
       condition: conditionTypes[Math.floor(Math.random() * conditionTypes.length)],
       temperature: Math.round(20 + Math.random() * 18),
       comment: comments[Math.floor(Math.random() * comments.length)],
-      time: time.toLocaleString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit', 
+      time: time.toLocaleString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
         hour12: true,
         month: 'short',
         day: 'numeric'
@@ -67,6 +69,7 @@ const generateObservations = () => {
       likes: Math.floor(Math.random() * 50),
       userName: `Observer_${Math.floor(Math.random() * 1000)}`,
       hasPhoto: Math.random() > 0.6,
+      replies: [],
     });
   }
 
@@ -78,6 +81,8 @@ export default function PublicObservationPage({ weatherData }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
   const [newObservation, setNewObservation] = useState({
     location: '',
     condition: 'sunny',
@@ -93,14 +98,14 @@ export default function PublicObservationPage({ weatherData }) {
     }, 600);
   }, []);
 
-  const filteredObservations = filter === 'all' 
-    ? observations 
+  const filteredObservations = filter === 'all'
+    ? observations
     : observations.filter(o => o.condition === filter);
 
   const getConditionIcon = (condition) => {
     const cond = conditions.find(c => c.id === condition);
     const Icon = cond?.icon || Cloud;
-    return <Icon size={20} className={`condition-icon-${condition}`} />;
+    return <Icon size={18} className={`condition-icon-${condition}`} />;
   };
 
   const handleSubmit = (e) => {
@@ -109,9 +114,9 @@ export default function PublicObservationPage({ weatherData }) {
       id: observations.length + 1,
       ...newObservation,
       temperature: parseInt(newObservation.temperature) || 25,
-      time: new Date().toLocaleString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit', 
+      time: new Date().toLocaleString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
         hour12: true,
         month: 'short',
         day: 'numeric'
@@ -119,6 +124,7 @@ export default function PublicObservationPage({ weatherData }) {
       likes: 0,
       userName: 'You',
       hasPhoto: false,
+      replies: [],
     };
     setObservations([newObs, ...observations]);
     setShowSubmitForm(false);
@@ -126,9 +132,38 @@ export default function PublicObservationPage({ weatherData }) {
   };
 
   const handleLike = (id) => {
-    setObservations(observations.map(o => 
+    setObservations(observations.map(o =>
       o.id === id ? { ...o, likes: o.likes + 1 } : o
     ));
+  };
+
+  const handleReply = (obsId) => {
+    if (!replyText.trim()) return;
+
+    setObservations(observations.map(o => {
+      if (o.id === obsId) {
+        return {
+          ...o,
+          replies: [
+            ...o.replies,
+            {
+              id: Date.now(),
+              userName: 'You',
+              text: replyText,
+              time: new Date().toLocaleString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              }),
+            }
+          ]
+        };
+      }
+      return o;
+    }));
+
+    setReplyText('');
+    setReplyingTo(null);
   };
 
   // Stats
@@ -177,7 +212,7 @@ export default function PublicObservationPage({ weatherData }) {
 
         {/* Submit Button */}
         <div className="card">
-          <button 
+          <button
             className="submit-observation-btn"
             onClick={() => setShowSubmitForm(!showSubmitForm)}
           >
@@ -255,7 +290,7 @@ export default function PublicObservationPage({ weatherData }) {
             <span>Filter by condition:</span>
           </div>
           <div className="filter-buttons">
-            <button 
+            <button
               className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
               onClick={() => setFilter('all')}
             >
@@ -291,62 +326,115 @@ export default function PublicObservationPage({ weatherData }) {
           ) : (
             <div className="observations-list">
               {filteredObservations.map(obs => (
-                <div key={obs.id} className="observation-item">
-                  <div className="observation-header">
-                    <div className="observation-user">
-                      <div className="user-avatar">
+                <div key={obs.id} className="observation-card">
+                  {/* Header with user and time */}
+                  <div className="obs-header">
+                    <div className="obs-user">
+                      <div className="obs-avatar">
                         <Users size={16} />
                       </div>
-                      <span className="user-name">{obs.userName}</span>
-                    </div>
-                    <div className="observation-time">
-                      <Clock size={14} />
-                      {obs.time}
-                    </div>
-                  </div>
-
-                  <div className="observation-content">
-                    <div className="observation-location">
-                      <MapPin size={16} />
-                      {obs.location}
-                    </div>
-
-                    <div className="observation-weather">
-                      {getConditionIcon(obs.condition)}
-                      <span className="condition-label">
-                        {conditions.find(c => c.id === obs.condition)?.label}
-                      </span>
-                      <span className="observation-temp">
-                        <Thermometer size={14} />
-                        {obs.temperature}°C
-                      </span>
-                    </div>
-
-                    {obs.comment && (
-                      <p className="observation-comment">{obs.comment}</p>
-                    )}
-
-                    {obs.hasPhoto && (
-                      <div className="observation-photo">
-                        <Camera size={14} />
-                        <span>Photo attached</span>
+                      <div className="obs-user-info">
+                        <span className="obs-username">{obs.userName}</span>
+                        <span className="obs-time">
+                          <Clock size={12} />
+                          {obs.time}
+                        </span>
                       </div>
-                    )}
+                    </div>
                   </div>
 
-                  <div className="observation-actions">
-                    <button 
-                      className="like-btn"
+                  {/* Weather info */}
+                  <div className="obs-weather-row">
+                    <div className="obs-location">
+                      <MapPin size={16} />
+                      <span>{obs.location}</span>
+                    </div>
+                    <div className="obs-condition">
+                      {getConditionIcon(obs.condition)}
+                      <span>{conditions.find(c => c.id === obs.condition)?.label}</span>
+                    </div>
+                    <div className="obs-temp">
+                      <Thermometer size={16} />
+                      <span>{obs.temperature}°C</span>
+                    </div>
+                  </div>
+
+                  {/* Comment */}
+                  {obs.comment && (
+                    <p className="obs-comment">{obs.comment}</p>
+                  )}
+
+                  {obs.hasPhoto && (
+                    <div className="obs-photo-badge">
+                      <Camera size={14} />
+                      <span>Photo attached</span>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="obs-actions">
+                    <button
+                      className="obs-action-btn like"
                       onClick={() => handleLike(obs.id)}
                     >
                       <ThumbsUp size={16} />
-                      {obs.likes}
+                      <span>{obs.likes}</span>
                     </button>
-                    <button className="comment-btn">
+                    <button
+                      className="obs-action-btn reply"
+                      onClick={() => setReplyingTo(replyingTo === obs.id ? null : obs.id)}
+                    >
                       <MessageCircle size={16} />
-                      Reply
+                      <span>Reply {obs.replies.length > 0 && `(${obs.replies.length})`}</span>
                     </button>
                   </div>
+
+                  {/* Replies Section */}
+                  {obs.replies.length > 0 && (
+                    <div className="obs-replies">
+                      {obs.replies.map(reply => (
+                        <div key={reply.id} className="obs-reply">
+                          <div className="reply-avatar">
+                            <Users size={12} />
+                          </div>
+                          <div className="reply-content">
+                            <div className="reply-header">
+                              <span className="reply-username">{reply.userName}</span>
+                              <span className="reply-time">{reply.time}</span>
+                            </div>
+                            <p className="reply-text">{reply.text}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reply Input */}
+                  {replyingTo === obs.id && (
+                    <div className="reply-input-container">
+                      <input
+                        type="text"
+                        placeholder="Write a reply..."
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleReply(obs.id)}
+                        autoFocus
+                      />
+                      <button
+                        className="reply-send-btn"
+                        onClick={() => handleReply(obs.id)}
+                        disabled={!replyText.trim()}
+                      >
+                        <Send size={16} />
+                      </button>
+                      <button
+                        className="reply-cancel-btn"
+                        onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

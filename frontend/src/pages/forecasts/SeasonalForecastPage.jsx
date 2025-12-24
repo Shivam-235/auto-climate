@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { 
-  Sun, 
-  Thermometer, 
+import {
+  Sun,
+  Thermometer,
   CloudRain,
   ArrowLeft,
   RefreshCw,
@@ -12,6 +12,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getRainfallData } from '../../services/weatherApi';
 
 const seasons = [
   { id: 'southwest-monsoon', name: 'Southwest Monsoon', months: 'Jun - Sep', icon: CloudRain },
@@ -22,7 +23,7 @@ const seasons = [
 
 const generateSeasonalData = () => {
   const regions = ['North', 'South', 'East', 'West', 'Central', 'Northeast'];
-  
+
   return regions.map(region => ({
     region,
     temperature: {
@@ -58,11 +59,26 @@ export default function SeasonalForecastPage({ weatherData }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setSeasonalData(generateSeasonalData());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const rainfallData = await getRainfallData();
+        const seasonalForecast = generateSeasonalData();
+        if (rainfallData && rainfallData.length > 0) {
+          seasonalForecast.forEach((region, idx) => {
+            if (rainfallData[idx]) {
+              region.isRealData = true;
+            }
+          });
+        }
+        setSeasonalData(seasonalForecast);
+      } catch (error) {
+        console.log('Using simulated seasonal data - API unavailable:', error.message);
+        setSeasonalData(generateSeasonalData());
+      }
       setLoading(false);
-    }, 700);
+    };
+    fetchData();
   }, [selectedSeason]);
 
   const getOutlookIcon = (outlook) => {

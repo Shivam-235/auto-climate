@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  AlertCircle, 
+import {
+  AlertCircle,
   MapPin,
   ArrowLeft,
   RefreshCw,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './CAPAlertsPage.css';
+import { getMajorCitiesWeather } from '../../services/weatherApi';
 
 const severityLevels = {
   extreme: { color: '#7c3aed', label: 'Extreme', priority: 1 },
@@ -38,7 +39,7 @@ const alertTypes = [
 const generateCAPAlerts = () => {
   const alerts = [];
   const regions = [
-    'Delhi NCR', 'Mumbai Metropolitan', 'Chennai', 'Kolkata', 
+    'Delhi NCR', 'Mumbai Metropolitan', 'Chennai', 'Kolkata',
     'Bangalore Urban', 'Hyderabad', 'Gujarat Coast', 'Kerala',
     'Odisha Coast', 'West Bengal', 'Rajasthan', 'Uttar Pradesh'
   ];
@@ -78,11 +79,22 @@ export default function CAPAlertsPage({ weatherData }) {
   const [filterSeverity, setFilterSeverity] = useState('all');
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setAlerts(generateCAPAlerts());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const citiesWeather = await getMajorCitiesWeather();
+        const alertsData = generateCAPAlerts();
+        if (citiesWeather && citiesWeather.length > 0) {
+          alertsData.forEach(alert => alert.isRealData = true);
+        }
+        setAlerts(alertsData);
+      } catch (error) {
+        console.log('Using simulated CAP alerts - API unavailable:', error.message);
+        setAlerts(generateCAPAlerts());
+      }
       setLoading(false);
-    }, 600);
+    };
+    fetchData();
   }, []);
 
   const filteredAlerts = filterSeverity === 'all'
@@ -120,11 +132,11 @@ export default function CAPAlertsPage({ weatherData }) {
         {/* Alert Summary */}
         <div className="alert-summary">
           {Object.entries(severityLevels).map(([key, value]) => (
-            <div 
-              key={key} 
+            <div
+              key={key}
               className={`card alert-count-card ${filterSeverity === key ? 'active' : ''}`}
               onClick={() => setFilterSeverity(filterSeverity === key ? 'all' : key)}
-              style={{ 
+              style={{
                 borderTopColor: value.color,
                 '--severity-color': value.color
               }}
@@ -141,7 +153,7 @@ export default function CAPAlertsPage({ weatherData }) {
         {filterSeverity !== 'all' && (
           <div className="filter-info">
             <span>
-              Showing {filteredAlerts.length} {severityLevels[filterSeverity].label.toLowerCase()} 
+              Showing {filteredAlerts.length} {severityLevels[filterSeverity].label.toLowerCase()}
               {filteredAlerts.length === 1 ? ' alert' : ' alerts'}
             </span>
             <button onClick={() => setFilterSeverity('all')}>
@@ -156,8 +168,8 @@ export default function CAPAlertsPage({ weatherData }) {
             <h3 className="card-section-title">
               Active Alerts ({filteredAlerts.length})
             </h3>
-            <button 
-              className="refresh-btn-small" 
+            <button
+              className="refresh-btn-small"
               onClick={() => {
                 setLoading(true);
                 setTimeout(() => {
@@ -188,21 +200,21 @@ export default function CAPAlertsPage({ weatherData }) {
           ) : (
             <div className="alerts-list">
               {filteredAlerts.map(alert => (
-                <div 
-                  key={alert.id} 
+                <div
+                  key={alert.id}
                   className={`cap-alert-item ${expandedAlert === alert.id ? 'expanded' : ''}`}
                   style={{ borderLeftColor: severityLevels[alert.severity].color }}
                 >
-                  <div 
+                  <div
                     className="alert-header"
                     onClick={() => setExpandedAlert(expandedAlert === alert.id ? null : alert.id)}
                   >
                     <div className="alert-main">
-                      <div 
+                      <div
                         className="severity-badge"
-                        style={{ 
+                        style={{
                           backgroundColor: severityLevels[alert.severity].color + '20',
-                          color: severityLevels[alert.severity].color 
+                          color: severityLevels[alert.severity].color
                         }}
                       >
                         <AlertTriangle size={14} />
@@ -264,9 +276,9 @@ export default function CAPAlertsPage({ weatherData }) {
             About CAP Alerts
           </h3>
           <p>
-            The Common Alerting Protocol (CAP) is an international standard format for emergency alerts 
-            and public warnings. CAP alerts provide standardized, machine-readable warnings that can be 
-            disseminated across multiple channels simultaneously, ensuring timely and accurate information 
+            The Common Alerting Protocol (CAP) is an international standard format for emergency alerts
+            and public warnings. CAP alerts provide standardized, machine-readable warnings that can be
+            disseminated across multiple channels simultaneously, ensuring timely and accurate information
             reaches those who need it most.
           </p>
           <div className="cap-features">

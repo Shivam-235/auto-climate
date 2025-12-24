@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Wind, 
+import {
+  Wind,
   ArrowLeft,
   MapPin,
   AlertTriangle,
@@ -14,6 +14,7 @@ import {
   Info
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getCurrentWeather } from '../../services/weatherApi';
 
 const cycloneCategories = [
   { name: 'Depression', windSpeed: '31-49', color: '#22c55e' },
@@ -27,7 +28,7 @@ const cycloneCategories = [
 
 const generateCycloneData = () => {
   const hasActiveCyclone = Math.random() > 0.3;
-  
+
   if (!hasActiveCyclone) {
     return {
       active: false,
@@ -93,10 +94,23 @@ export default function CycloneServicePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      setData(generateCycloneData());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Check coastal city weather for potential cyclone conditions
+        const coastalWeather = await getCurrentWeather('Chennai');
+        const cycloneData = generateCycloneData();
+        if (cycloneData && coastalWeather?.wind?.speed > 20) {
+          cycloneData.realWindData = coastalWeather.wind;
+        }
+        setData(cycloneData);
+      } catch (error) {
+        console.log('Using simulated cyclone data - API unavailable:', error.message);
+        setData(generateCycloneData());
+      }
       setLoading(false);
-    }, 800);
+    };
+    fetchData();
   }, []);
 
   if (loading) {
@@ -343,10 +357,10 @@ export default function CycloneServicePage() {
                   <div key={idx} className="track-point">
                     <div className="track-time">{point.time}</div>
                     <div className="track-connector">
-                      <div className="track-dot" style={{ 
-                        background: point.intensity === 'Peak' ? '#ef4444' : 
-                                   point.intensity === 'Intensifying' ? '#f97316' : 
-                                   point.intensity === 'Maintaining' ? '#eab308' : '#3b82f6' 
+                      <div className="track-dot" style={{
+                        background: point.intensity === 'Peak' ? '#ef4444' :
+                          point.intensity === 'Intensifying' ? '#f97316' :
+                            point.intensity === 'Maintaining' ? '#eab308' : '#3b82f6'
                       }} />
                       {idx < data.cyclone.forecast.length - 1 && <div className="track-line" />}
                     </div>
@@ -378,10 +392,10 @@ export default function CycloneServicePage() {
                   <div key={idx} className={`warning-item warning-${warning.type.toLowerCase().replace(' ', '-')}`}>
                     <div className="warning-badge" style={{
                       background: warning.type === 'Red Warning' ? 'rgba(239, 68, 68, 0.2)' :
-                                 warning.type === 'Orange Warning' ? 'rgba(249, 115, 22, 0.2)' :
-                                 'rgba(234, 179, 8, 0.2)',
+                        warning.type === 'Orange Warning' ? 'rgba(249, 115, 22, 0.2)' :
+                          'rgba(234, 179, 8, 0.2)',
                       borderColor: warning.type === 'Red Warning' ? '#ef4444' :
-                                  warning.type === 'Orange Warning' ? '#f97316' : '#eab308'
+                        warning.type === 'Orange Warning' ? '#f97316' : '#eab308'
                     }}>
                       {warning.type}
                     </div>
