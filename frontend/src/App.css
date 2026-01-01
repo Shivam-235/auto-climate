@@ -2876,6 +2876,7 @@ body {
 .sun-arc {
   flex: 1;
   padding: 0 1rem;
+  margin-top: 6px;
 }
 
 .sun-arc-track {
@@ -2883,6 +2884,7 @@ body {
   height: 8px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
+  margin-top: 8px;
 }
 
 .sun-arc-progress {

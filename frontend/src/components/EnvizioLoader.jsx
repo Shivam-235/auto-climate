@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import './EnvizioLoader.css';
+import EnvizioLogo from './EnvizioLogo';
 
 export default function EnvizioLoader({ onComplete }) {
   const [stage, setStage] = useState('rising');
@@ -41,6 +42,14 @@ export default function EnvizioLoader({ onComplete }) {
           }
           transition={{ duration: 1.5, ease: [0.43, 0.13, 0.23, 0.96] }}
         >
+          <motion.div
+            className="envizio-logo-wrapper"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+          >
+            <EnvizioLogo size={80} className="envizio-loader-logo" />
+          </motion.div>
           <motion.h1
             className="envizio-text"
             initial={{ opacity: 0 }}

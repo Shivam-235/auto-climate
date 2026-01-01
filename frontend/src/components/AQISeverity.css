@@ -1,0 +1,367 @@
+/* AQI Severity Styles - Hazardous & Extreme Visual Indicators */
+
+/* Hazardous AQI Card Styling */
+.aqi-card.hazardous {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.3), rgba(128, 0, 32, 0.2));
+    border-color: rgba(178, 34, 34, 0.5);
+    animation: hazardousPulse 3s ease-in-out infinite;
+}
+
+/* Extreme AQI Card Styling */
+.aqi-card.extreme {
+    background: linear-gradient(135deg, rgba(128, 0, 32, 0.4), rgba(75, 0, 130, 0.3));
+    border-color: rgba(139, 0, 0, 0.6);
+    animation: extremePulse 2s ease-in-out infinite;
+}
+
+@keyframes hazardousPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(178, 34, 34, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(178, 34, 34, 0.5);
+    }
+}
+
+@keyframes extremePulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 30px rgba(139, 0, 0, 0.4);
+        border-color: rgba(139, 0, 0, 0.6);
+    }
+
+    50% {
+        box-shadow: 0 0 50px rgba(139, 0, 0, 0.7);
+        border-color: rgba(255, 0, 0, 0.8);
+    }
+}
+
+/* Smoke Container */
+.smoke-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Smoke Particles */
+.smoke-particle {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, rgba(169, 169, 169, 0.4) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: smokeRise 8s ease-out infinite;
+    opacity: 0;
+}
+
+.smoke-1 {
+    left: 10%;
+    bottom: -20px;
+    animation-delay: 0s;
+    width: 50px;
+    height: 50px;
+}
+
+.smoke-2 {
+    left: 30%;
+    bottom: -20px;
+    animation-delay: 1.5s;
+    width: 70px;
+    height: 70px;
+}
+
+.smoke-3 {
+    left: 50%;
+    bottom: -20px;
+    animation-delay: 3s;
+    width: 45px;
+    height: 45px;
+}
+
+.smoke-4 {
+    left: 70%;
+    bottom: -20px;
+    animation-delay: 4.5s;
+    width: 55px;
+    height: 55px;
+}
+
+.smoke-5 {
+    left: 85%;
+    bottom: -20px;
+    animation-delay: 2s;
+    width: 65px;
+    height: 65px;
+}
+
+.smoke-6 {
+    left: 20%;
+    bottom: -20px;
+    animation-delay: 5.5s;
+    width: 40px;
+    height: 40px;
+}
+
+@keyframes smokeRise {
+    0% {
+        opacity: 0;
+        transform: translateY(0) scale(1) rotate(0deg);
+    }
+
+    10% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: translateY(-150px) scale(1.5) rotate(45deg);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-300px) scale(2) rotate(90deg);
+    }
+}
+
+/* Severity Corner Container - Aligned Top Right */
+.severity-corner-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    z-index: 10;
+}
+
+/* Icon-Based Severity Badge - Clean Design */
+.severity-icon-badge {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    overflow: visible;
+    animation: iconBadgePulse 2s ease-in-out infinite;
+}
+
+.severity-icon-bg {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #8b2500, #b22222);
+    box-shadow:
+        0 4px 15px rgba(139, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.aqi-card.extreme .severity-icon-bg {
+    background: linear-gradient(135deg, #4b0082, #8b0000);
+    box-shadow:
+        0 4px 15px rgba(75, 0, 130, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.severity-icon-bg svg {
+    color: #fff;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.severity-health-icon {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.5);
+    animation: heartbeat 1.2s ease-in-out infinite;
+}
+
+.severity-health-icon svg {
+    color: #fff;
+}
+
+@keyframes iconBadgePulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes heartbeat {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    25% {
+        transform: scale(1.15);
+    }
+
+    50% {
+        transform: scale(1);
+    }
+
+    75% {
+        transform: scale(1.1);
+    }
+}
+
+/* Cigarette - Aligned Below Icon */
+.cigarette-corner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 4px 8px 4px 4px;
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 100, 100, 0.3);
+}
+
+.cigarette-icon-small {
+    width: 40px;
+    height: auto;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
+}
+
+/* Cigarette Smoke Effect */
+.cigarette-smoke-effect {
+    position: absolute;
+    top: -18px;
+    left: 2px;
+    width: 18px;
+    height: 22px;
+    pointer-events: none;
+}
+
+.cigarette-smoke-effect span {
+    position: absolute;
+    bottom: 0;
+    width: 4px;
+    height: 4px;
+    background: rgba(200, 200, 200, 0.7);
+    border-radius: 50%;
+    animation: singleSmokeRise 1.8s ease-out infinite;
+}
+
+.cigarette-smoke-effect span:nth-child(1) {
+    left: 1px;
+    animation-delay: 0s;
+}
+
+.cigarette-smoke-effect span:nth-child(2) {
+    left: 7px;
+    animation-delay: 0.5s;
+}
+
+.cigarette-smoke-effect span:nth-child(3) {
+    left: 13px;
+    animation-delay: 1s;
+}
+
+@keyframes singleSmokeRise {
+    0% {
+        opacity: 0;
+        transform: translateY(0) scale(1);
+    }
+
+    15% {
+        opacity: 0.9;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-22px) translateX(2px) scale(2);
+    }
+}
+
+.cigarette-text {
+    color: #ff8888;
+    font-size: 0.65rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .severity-corner-container {
+        top: 8px;
+        right: 8px;
+        gap: 4px;
+    }
+
+    .severity-icon-badge {
+        width: 38px;
+        height: 38px;
+    }
+
+    .severity-icon-bg svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .severity-health-icon {
+        width: 16px;
+        height: 16px;
+        bottom: -3px;
+        right: -3px;
+    }
+
+    .severity-health-icon svg {
+        width: 10px;
+        height: 10px;
+    }
+
+    .cigarette-corner {
+        padding: 3px 6px 3px 3px;
+    }
+
+    .cigarette-icon-small {
+        width: 32px;
+    }
+
+    .cigarette-smoke-effect {
+        display: none;
+    }
+
+    .cigarette-text {
+        font-size: 0.6rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .severity-icon-badge {
+        width: 32px;
+        height: 32px;
+    }
+
+    .cigarette-icon-small {
+        width: 28px;
+    }
+}

@@ -1,12 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Sun, 
-  Clock, 
-  AlertTriangle, 
-  Moon, 
+import {
+  LayoutDashboard,
+  Sun,
+  Clock,
+  AlertTriangle,
+  Moon,
   Map,
-  Activity,
   Layers,
   TrendingUp,
   Building2,
@@ -15,6 +14,7 @@ import {
   Monitor
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import EnvizioLogo from './EnvizioLogo';
 
 const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -41,7 +41,7 @@ export default function Sidebar({ onLoginClick, onRegisterClick, theme, onThemeC
     <aside className={`sidebar ${isDark ? 'dark' : ''} ${isOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <Activity className="sidebar-logo-icon" />
+          <EnvizioLogo size={32} className="sidebar-logo-icon" />
         </div>
         <span className="sidebar-title">Envizio</span>
       </div>
@@ -62,13 +62,13 @@ export default function Sidebar({ onLoginClick, onRegisterClick, theme, onThemeC
           ))}
         </div>
       </div>
-      
+
       <nav className="sidebar-nav">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
-            className={({ isActive }) => 
+            className={({ isActive }) =>
               `sidebar-link ${isActive ? 'active' : ''}`
             }
             onClick={() => onClose && onClose()}
@@ -78,7 +78,7 @@ export default function Sidebar({ onLoginClick, onRegisterClick, theme, onThemeC
           </NavLink>
         ))}
       </nav>
-      
+
       <div className="sidebar-footer">
         {isAuthenticated ? (
           <div className="sidebar-user">

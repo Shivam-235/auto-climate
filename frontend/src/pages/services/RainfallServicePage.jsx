@@ -835,18 +835,7 @@ export default function RainfallServicePage() {
                 <RefreshCw size={16} />
                 Refresh Data
               </button>
-              <button className="action-btn">
-                <Download size={16} />
-                Export Report
-              </button>
-              <button className="action-btn">
-                <Share2 size={16} />
-                Share
-              </button>
-              <button className="action-btn">
-                <Bell size={16} />
-                Set Alert
-              </button>
+              
             </div>
 
             {/* Last Update Info */}
