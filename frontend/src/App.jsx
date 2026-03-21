@@ -45,7 +45,9 @@ import GeospatialServicePage from './pages/services/GeospatialServicePage';
 import './App.css';
 import './components/ResponsiveFixes.css';
 
-const SOCKET_URL = 'http://localhost:4000';
+const SOCKET_URL = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.replace('/api', '') 
+  : 'http://localhost:4000';
 
 function App() {
   const [weatherData, setWeatherData] = useState(null);

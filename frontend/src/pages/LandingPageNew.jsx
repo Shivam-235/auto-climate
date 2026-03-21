@@ -11,7 +11,7 @@ import './LandingPageNew.css';
 // --- 3D SCENE COMPONENTS ---
 
 function NeptunePlanet({ isWarping }) {
-  const { scene } = useGLTF('/src/assets/neptune/scene.gltf');
+  const { scene } = useGLTF('/neptune/scene.gltf');
   const planetRef = useRef();
 
   useFrame((state, delta) => {
@@ -26,7 +26,7 @@ function NeptunePlanet({ isWarping }) {
 }
 
 function StarScene() {
-  const { scene } = useGLTF('/src/assets/need_some_space.glb');
+  const { scene } = useGLTF('/need_some_space.glb');
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh && child.material) {
